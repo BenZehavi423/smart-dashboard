@@ -1,0 +1,30 @@
+services:
+  web: # Our Flask web application
+    build: # Build image from Dockerfile in./web directory
+      context: ./website
+    container_name: smart_dashboard_web
+    ports: # Map host port 5000 to container port 5000
+      - "5000:5000"
+    volumes: #Mount code into container for live updates
+      - ./website:/app
+    networks: # Join a shared network so services can communicate
+      - my-network
+    depends_on: # Ensure web starts after database
+      - db
+
+  db: # MongoDB database service
+      image: mongo:latest
+      hostname: db
+      container_name: db
+      restart: unless-stopped
+      command: ["--bind_ip_all"] # Allow connections from any IP
+      expose: # Expose default Mongo port
+        - "27017:27017"
+      volumes: # Persist database files on the host
+        - ./data/db:/data/db
+      networks:
+        - my-network
+
+
+networks: # Define a custom network for service communication
+  my-network:
