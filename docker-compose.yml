@@ -18,12 +18,27 @@ services:
       container_name: db
       restart: unless-stopped
       command: ["--bind_ip_all"] # Allow connections from any IP
-      expose: # Expose default Mongo port
+      ports: # default Mongo port
         - "27017:27017"
       volumes: # Persist database files on the host
         - ./data/db:/data/db
       networks:
         - my-network
+
+
+  tests:
+    build:
+      context: .
+      dockerfile: Dockerfile.tests
+    depends_on:
+      - db
+    environment:
+      - MONGO_URI=mongodb://db:27017/mydb
+    profiles:
+      - tests
+    networks:
+      - my-network
+
 
 
 networks: # Define a custom network for service communication

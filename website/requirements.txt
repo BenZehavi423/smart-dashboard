@@ -3,3 +3,5 @@ datetime
 typing
 uuid
 pymongo
+bcrypt
+flask-jwt-extended

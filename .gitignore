@@ -2,6 +2,8 @@
 __pycache/
 env/
 venv/
+.env
+*.pyc
 
 # Docker
 *.log

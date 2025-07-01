@@ -1,5 +1,8 @@
 import argparse
 from web import create_app
+import sys
+# Ensure the web package is in the Python path
+sys.path.append("/app")
 
 app = create_app()
 

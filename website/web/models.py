@@ -75,3 +75,39 @@ class AnalysisResult:
             created_at=data.get("created_at"),
             _id=data.get("_id"),
         )
+    
+
+class User:
+    def __init__(self, username: str, email: str, password_hash: str, _id: str = None):
+        """
+        Initializes a new User instance.
+
+        :param username: The user's unique username
+        :param email: The user's email address
+        :param password_hash: The bcrypt-hashed password
+        :param _id: Optional unique ID; if not provided, a UUID will be generated
+        """
+        #create a unique identifier for the user if not provided
+        self._id = _id or str(uuid.uuid4())
+        self.username = username
+        self.email = email
+        self.password_hash = password_hash
+
+    #Converts the User object into a dictionary suitable for MongoDB insertion.
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "_id": self._id,
+            "username": self.username,
+            "email": self.email,
+            "password_hash": self.password_hash,  # Assuming password_hash is set elsewhere
+        }
+
+    @classmethod
+    # A factory method that takes a MongoDB document (a dict) and returns a User instance with the same fields.
+    def from_dict(cls, data: Dict[str, Any]) -> "User":
+        return cls(
+            username=data["username"],
+            email=data["email"],
+            password_hash=data["password_hash"],  # Assuming password_hash is stored in the dict
+            _id=data.get("_id"),
+        )

@@ -1,4 +1,11 @@
 ## Usage
-1. start docker engine <br>
-2. run docker-compose up <br>
-3. This should open a server with mongoDB lisenter and server with the app <br>
+
+Start Docker engine  
+Run `docker-compose up`  
+This will start the app server and MongoDB listener.
+
+## Status
+
+-  Registration page works and stores data in MongoDB  
+-  Login process not yet implemented but login page exists
+-  Tests currently run locally – `Dockerfile.tests` exists but test container setup is incomplete
