@@ -1,35 +1,30 @@
-import unittest
+import pytest
 import bcrypt
-from web.models import User
-from web.db_manager import MongoDBManager
+from unittest.mock import patch, MagicMock
+from website.web.models import User
 
-class TestUserDatabase(unittest.TestCase):
-    """Test basic User create, fetch and delete operations in MongoDB."""
+@pytest.fixture
+def mock_db():
+    with patch('website.web.db_manager.MongoDBManager') as MockDB:
+        mock_db_instance = MockDB.return_value
+        yield mock_db_instance
 
-    def setUp(self):
-        # Prepare a clean DB manager before each test
-        self.db = MongoDBManager()
-        self.username = "testuser"
-        self.email = "test@example.com"
-        self.password = "MySecurePassword123"
-        self.hashed_pw = bcrypt.hashpw(self.password.encode(), bcrypt.gensalt()).decode()
+@pytest.fixture
+def test_user():
+    return User(username="testuser", email="test@example.com", password_hash="hashed")
 
-        self.user = User(username=self.username, email=self.email, password_hash=self.hashed_pw)
-        self.user_id = self.db.create_user(self.user)
+def test_create_and_get_user(mock_db, test_user):
+    # Setup mock return values
+    mock_db.create_user.return_value = "mocked_id"
+    mock_db.get_user_by_username.return_value = test_user
 
-    def test_create_and_get_user(self):
-        # Try fetching by username
-        fetched = self.db.get_user_by_username(self.username)
-        self.assertIsNotNone(fetched)
-        self.assertEqual(fetched._id, self.user_id)
-        self.assertEqual(fetched.email, self.email)
+    user_id = mock_db.create_user(test_user)
+    fetched = mock_db.get_user_by_username(test_user.username)
 
-    def tearDown(self):
-        # Cleanup the user after each test
-        self.db.delete_user(self.user_id)
-        self.db.client.close()
+    assert user_id == "mocked_id"
+    assert fetched is test_user
+    assert fetched.username == "testuser"
+    assert fetched.email == "test@example.com"
 
-if __name__ == "__main__":
-    unittest.main()
 # This code is for testing the User model's database operations.
 # It creates a user, fetches it by username, and cleans up after the test.

@@ -1,6 +1,6 @@
 from pymongo import MongoClient
 from typing import Optional, Dict, Any, List
-from web.models import File, Dataset, AnalysisResult, User
+from .models import File, Dataset, AnalysisResult, User
 
 class MongoDBManager:
     def __init__(self, uri: str = "mongodb://db:27017", db_name: str = "mydb"):

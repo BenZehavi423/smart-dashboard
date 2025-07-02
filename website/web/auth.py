@@ -1,6 +1,6 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash, current_app
-from web.models import User
-from web.db_manager import MongoDBManager
+from flask import Blueprint, render_template, request, redirect, url_for, flash, current_app, session
+from .models import User
+from .db_manager import MongoDBManager
 import bcrypt
 
 #create a blueprint for auth routes
