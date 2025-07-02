@@ -1,0 +1,103 @@
+body {
+    font-family: 'Arial', sans-serif;
+    background-color: #f4f4f9;
+    margin: 0;
+    padding: 0;
+    color: #333;
+}
+
+header {
+    background-color: #4CAF50;
+    color: white;
+    text-align: center;
+    padding: 20px 0;
+}
+
+nav {
+    text-align: center;
+    background-color: #333;
+}
+
+nav a {
+    color: white;
+    padding: 14px 20px;
+    text-decoration: none;
+    display: inline-block;
+}
+
+nav a:hover {
+    background-color: #ddd;
+    color: black;
+}
+
+footer {
+    background-color: #333;
+    color: white;
+    text-align: center;
+    padding: 10px 0;
+    position: fixed;
+    width: 100%;
+    bottom: 0;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 20px auto;
+    padding: 0 15px;
+}
+
+
+.content {
+    padding: 20px;
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+}
+
+
+button,
+a.button {
+    display: inline-block;
+    margin: 10px;
+    padding: 12px 28px;
+    font-size: 18px;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s;
+    background-color: #4CAF50;
+}
+button:hover, 
+a.button:hover {
+    background-color: #388E3C;
+}
+
+.button.blue,
+a.button.blue {
+    background-color: #2196F3;
+}
+.button.blue:hover,
+a.button.blue:hover {
+    background-color: #1769AA;
+}
+
+.button.red,
+a.button.red {
+    background-color: #f44336;
+}
+.button.red:hover,
+a.button.red:hover {
+    background-color: #d32f2f;
+}
+
+h1 {
+    font-size: 2.5rem;
+    color: #333;
+    font-weight: bold;
+    margin-bottom: 20px;
+    letter-spacing: 1px;
+    text-align: center;
+    text-shadow: 1px 1px 4px #e0e0e0;
+}
