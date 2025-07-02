@@ -34,8 +34,7 @@ def test_upload_files_button_redirects_to_upload_page(client, mock_db):
     
     response = client.get('/upload_files')
     assert response.status_code == 200
-    # Note: This will fail until you create the upload_files.html template
-    # For now, just check that the route exists and returns 200
+    assert b'Choose Files to Upload' in response.data
 
 def test_profile_page_data_correctness(client, mock_db):
     """Test that profile page displays correct user data"""
