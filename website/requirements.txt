@@ -5,3 +5,7 @@ uuid
 pymongo
 bcrypt
 flask-jwt-extended
+functools
+werkzeug
+unittest
+pytest
