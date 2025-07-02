@@ -3,8 +3,14 @@
 My Profile
 {% endblock %}
 {% block content %}
-<h1>{{ current_user.username }}'s Profile Page</h1>
+<h1>{{ user.username }}'s Profile Page</h1>
 <h2>My dashboard:</h2>
 <h2>My files:</h2>
+<a href="{{ url_for('views.upload_files') }}" class="button blue">Upload Files</a>
 <h2>My details:</h2>
+<ul>
+    <li><strong>Username:</strong> {{ user.username }}</li>
+    <li><strong>Email:</strong> {{ user.email }}</li>
+    <li>company details will be added in the future</li>
+</ul>
 {% endblock %}

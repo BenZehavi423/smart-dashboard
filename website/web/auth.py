@@ -47,7 +47,7 @@ def register():
         current_app.db.create_user(user)
 
         flash('Registration successful! Please log in.', 'success')
-        return redirect(url_for('auth.login'))
+        return redirect(url_for('views.profile'))
     
     #if GET request, render the registration template
     return render_template('register.html')
