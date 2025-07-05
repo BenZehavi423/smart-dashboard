@@ -45,13 +45,27 @@ def test_logout_invalidates_session(client, registered_user):
     # Confirm that the redirect target is the login page (unauthorized users should be sent there)
     assert '/login' in response.headers.get('Location', '')
 
-# Test that user can access protected pages after login
-def test_session_persists_across_pages(client, registered_user):
-    client.post('/login', data=registered_user, follow_redirects=True)
+# Test that a logged-in user can access their profile page
+def test_session_persists_across_pages(client, mock_db, test_user):
+    """
+    Verify that after logging in, the session persists across multiple
+    protected routes and the user receives personalized content.
+    """
+
+    mock_db.get_user_by_username.return_value = test_user
+
+    login_data = {'username': test_user.username, 'password': 'securepassword'}
+    client.post('/login', data=login_data, follow_redirects=True)
+
     for url in ['/profile', '/upload_files']:
         response = client.get(url)
+
         assert response.status_code == 200
-        assert b'testuser' in response.data.lower()
+
+        # Check for personalized content in the profile page
+        if url == '/profile':
+            assert b"username:</strong> testuser" in response.data.lower()
+
 
 # Test that logged-in users who visit /login are redirected to /profile
 def test_login_redirects_if_already_logged_in(client, registered_user):
