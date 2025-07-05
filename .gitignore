@@ -1,20 +1,106 @@
-# python
+# Python
 __pycache/
 __pycache__/
+*.py[cod]
+*.pyc
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+*.egg
+
+# Virtual environments
 env/
 venv/
 .env
-*.pyc
-
-# Docker
-*.log
-*.pid
-.enc
-docker-compose.override.yml
+.venv/
+ENV/
+env.bak/
+venv.bak/
 
 # IDE
 .vscode/
 .idea/
+*.swp
+*.swo
+*~
 
-#Database
+# Testing
+.coverage
+.coverage.*
+.cache
+.pytest_cache/
+htmlcov/
+.tox/
+
+# Log files
+logs/
+*.log
+*.log.*
+
+# But keep log directory structure
+!logs/.gitkeep
+
+# Database
 data/
+
+# Docker
+*.pid
+.enc
+docker-compose.override.yml
+.dockerignore
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Flask
+instance/
+.webassets-cache
+
+# Translations
+*.mo
+*.pot
+
+# Django stuff:
+local_settings.py
+db.sqlite3
+
+# Scrapy stuff:
+.scrapy
+
+# Sphinx documentation
+docs/_build/
+
+# PyBuilder
+target/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# celery beat schedule file
+celerybeat-schedule
+
+# SageMath parsed files
+*.sage.py
+
+# Spyder project settings
+.spyderproject
+.spyproject
+
+# Rope project settings
+.ropeproject
+
+# mkdocs documentation
+/site
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
