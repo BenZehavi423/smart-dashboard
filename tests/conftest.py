@@ -13,7 +13,8 @@ def mock_db():
 
 @pytest.fixture
 def test_user():
-    return User(username="testuser", email="test@example.com", password_hash="hashed")
+    hashed = bcrypt.hashpw("securepassword".encode(), bcrypt.gensalt()).decode()
+    return User(username="testuser", email="test@example.com", password_hash=hashed)
 
 @pytest.fixture
 def app(mock_db):

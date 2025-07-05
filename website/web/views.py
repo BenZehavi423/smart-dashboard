@@ -29,26 +29,40 @@ def allowed_file(filename):
 @views.route('/upload_files', methods=['GET', 'POST'])
 @login_required
 def upload_files():
+    # Check if user is logged in
+    # If not, redirect to login page
     if 'username' not in session:
         return redirect(url_for('auth.login'))
     user = current_app.db.get_user_by_username(session['username'])
+
+    # Handle file upload via AJAX post request
+    # POST: process uploaded files
     if request.method == 'POST':
         files = request.files.getlist('file')
         failed_files = []
+
         for file in files:
             if file and file.filename and allowed_file(file.filename):
-                proccesed_file = process_file(file)
-                current_app.db.create_file(proccesed_file)
+                try:
+                    #Process the file and attach user_id + preview
+                    processed_file = process_file(file, user._id)
+                    current_app.db.create_file(processed_file)
+
+                except Exception as e:
+                    # If processing fails, log the error
+                    failed_files.append(f"{file.filename}: {str(e)}")
+
+            # If file is not valid, log the error
             else:
                 failed_files.append(f"Invalid file: {getattr(file, 'filename', 'unknown')}")
-        if len(failed_files) != 0:
-            flash(f'Failed to upload {len(failed_files)} files.', 'error')
-        else:
-            flash('All files uploaded successfully!', 'success')
+
+        # Return JSON response to the frontend
         return jsonify({
             'success': len(failed_files) == 0,
             'failed_files': failed_files,
+            'files': [f.filename for f in current_app.db.get_files_for_user(user)]
         })
-    # GET: render page with user's files
+
+    #GET: render the upload page with current user's files
     user_files = current_app.db.get_files_for_user(user)
     return render_template('upload_files.html', files=user_files)

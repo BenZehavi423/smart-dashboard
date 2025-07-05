@@ -53,10 +53,14 @@ fileElem.addEventListener('change', e => {
 });
 
 // AJAX form submission
+//Prevent page reload and handle form via JavaScript (AJAX)
 uploadForm.addEventListener('submit', function(e) {
-  e.preventDefault();
+  e.preventDefault(); // Prevent default form submission
+  // Clear previous error messages
   errorMessages.textContent = '';
   let formData = new FormData(uploadForm);
+
+  //Send file(s) asynchronously to the backend (AJAX POST)
   fetch(uploadForm.action, {
     method: 'POST',
     body: formData
@@ -64,6 +68,7 @@ uploadForm.addEventListener('submit', function(e) {
   .then(response => response.json())
   .then(data => {
     if (data.success) {
+      
       // Update file list
       fileList.innerHTML = '';
       data.files.forEach(filename => {

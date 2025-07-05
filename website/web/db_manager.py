@@ -47,6 +47,16 @@ class MongoDBManager:
         result = self.files.delete_one({"_id": file_id})
         return result.deleted_count > 0
     
+    def get_files_for_user(self, user: User) -> List[File]:
+        """
+        Returns a list of File objects uploaded by the given user.
+        :param user: User object
+        :return: List of File objects
+        """
+        docs = self.files.find({"user_id": user._id})
+        return [File.from_dict(d) for d in docs]
+
+    
 # ----- DATASET OPERATIONS -----
 
     def create_dataset(self, ds: Dataset) -> str:

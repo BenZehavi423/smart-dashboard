@@ -6,11 +6,12 @@ import uuid
 
 
 class File:
-    def __init__(self, filename: str, upload_date: datetime = None, user_id: str = None, _id: str = None):
+    def __init__(self, filename: str, upload_date: datetime = None, user_id: str = None, _id: str = None, preview=None):
         self._id = _id or str(uuid.uuid4())
         self.filename = filename
         self.upload_date = upload_date or datetime.utcnow()
         self.user_id = user_id
+        self.preview = preview or [] # Placeholder for file preview, if needed
 
     def to_dict(self) -> Dict[str, Any]:
         # Converts the File object into a plain dictionary suitable for insertion into MongoDB
@@ -19,6 +20,7 @@ class File:
             "filename": self.filename,
             "upload_date": self.upload_date,
             "user_id": self.user_id,
+            "preview": self.preview,  # Include preview if needed
         }
 
     @classmethod
@@ -29,6 +31,7 @@ class File:
             upload_date=data.get("upload_date"),
             user_id=data.get("user_id"),
             _id=data.get("_id"),
+            preview=data.get("preview", []),  # Handle preview if it exists
         )
 
 class Dataset:

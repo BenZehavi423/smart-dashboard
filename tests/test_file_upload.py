@@ -116,8 +116,10 @@ def test_empty_file_upload(client, mock_db, test_user, mock_empty_csv_file):
     
     assert response.status_code == 200
     data = response.get_json()
-    # Empty CSV files should still be considered valid format-wise
-    assert data['success'] == True
+    # Empty CSV files currently cause an error in processing
+    assert data['success'] == False
+    assert len(data['failed_files']) == 1
+    assert 'Failed to parse CSV' in data['failed_files'][0]
 
 def test_upload_page_displays_user_files(client, mock_db, test_user):
     """Test that upload page displays existing user files"""
@@ -136,4 +138,4 @@ def test_upload_page_displays_user_files(client, mock_db, test_user):
     response = client.get('/upload_files')
     assert response.status_code == 200
     assert b'existing1.csv' in response.data
-    assert b'existing2.csv' in response.data 
+    assert b'existing2.csv' in response.data

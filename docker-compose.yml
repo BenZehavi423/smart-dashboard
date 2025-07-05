@@ -41,20 +41,6 @@ services:
       - db
 
 
-  tests:
-    build:
-      context: .
-      dockerfile: Dockerfile.tests
-    depends_on:
-      - db
-    environment:
-      - MONGO_URI=mongodb://db:27017/mydb
-    profiles:
-      - tests
-    networks:
-      - my-network
-
-
 
 networks: # Define a custom network for service communication
   my-network:
