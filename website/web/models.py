@@ -1,12 +1,12 @@
 from datetime import datetime
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 import uuid
 
 # uuid generates unique identifiers (if id didn't passed)
 
 
 class File:
-    def __init__(self, filename: str, upload_date: datetime = None, user_id: str = None, _id: str = None, preview=None):
+    def __init__(self, filename: str, upload_date: Optional[datetime] = None, user_id: Optional[str] = None, _id: Optional[str] = None, preview=None):
         self._id = _id or str(uuid.uuid4())
         self.filename = filename
         self.upload_date = upload_date or datetime.utcnow()
@@ -35,7 +35,7 @@ class File:
         )
 
 class Dataset:
-    def __init__(self, file_id: str, records: List[Dict[str, Any]], _id: str = None):
+    def __init__(self, file_id: str, records: List[Dict[str, Any]], _id: Optional[str] = None):
         self._id = _id or str(uuid.uuid4())
         self.file_id = file_id
         self.records = records
@@ -56,7 +56,7 @@ class Dataset:
         )
 
 class AnalysisResult:
-    def __init__(self, file_id: str, stats: Dict[str, Any], created_at: datetime = None, _id: str = None):
+    def __init__(self, file_id: str, stats: Dict[str, Any], created_at: Optional[datetime] = None, _id: Optional[str] = None):
         self._id = _id or str(uuid.uuid4())
         self.file_id = file_id
         self.stats = stats
@@ -81,7 +81,7 @@ class AnalysisResult:
     
 
 class User:
-    def __init__(self, username: str, email: str, password_hash: str, _id: str = None):
+    def __init__(self, username: str, email: str, password_hash: str, _id: Optional[str] = None):
         """
         Initializes a new User instance.
 
