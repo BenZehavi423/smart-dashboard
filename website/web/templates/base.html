@@ -13,6 +13,11 @@
     <!-- Header -->
     <header>
         <h1>My Flask App</h1>
+        {% if session.username %}
+            <form action="{{ url_for('auth.logout') }}" method="get">
+                <button type="submit" class="button red">Logout</button>
+            </form>
+        {% endif %}
         <p>Welcome to the most amazing website!</p>
     </header>
 

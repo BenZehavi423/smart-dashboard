@@ -84,11 +84,11 @@ def login():
     return render_template('login.html'), 200
 
 
-# @auth.route('/logout')
-# def logout():
-#     session.pop('username', None)
-#     flash('You have been logged out.', 'success')
-#     return redirect(url_for('auth.login'))
+@auth.route('/logout')
+def logout():
+     session.pop('username', None)
+     flash('You have been logged out.', 'success')
+     return redirect(url_for('auth.login'))
 
 
 
