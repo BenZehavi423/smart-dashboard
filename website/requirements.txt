@@ -7,3 +7,4 @@ bcrypt
 flask-jwt-extended
 werkzeug
 pytest
+colorama
