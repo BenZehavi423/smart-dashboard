@@ -114,3 +114,55 @@ class User:
             password_hash=data["password_hash"],  # Assuming password_hash is stored in the dict
             _id=data.get("_id"),
         )
+
+
+class Plot:
+    def __init__(self, image_name: str, image: Any, files: List[str], created_time: Optional[datetime] = None,
+                  is_presented: bool = True, user_id: Optional[str] = None, _id: Optional[str] = None):
+        """
+        Initializes a new Plot instance.
+
+        :param image_name: Name of the image, can be changed by user before saving
+        :param image: The plot/image data itself
+        :param files: List of file IDs the plot was based on
+        :param created_time: Time and date of creating the image (saving to database)
+        :param is_presented: Boolean value, if true then plot is presented in profile
+        :param user_id: ID of the user that the plot belongs to
+        :param _id: Optional unique ID; if not provided, a UUID will be generated
+        """
+        self._id = _id or str(uuid.uuid4())
+        self.user_id = user_id
+        self.image_name = image_name
+        self.created_time = created_time or datetime.utcnow()
+        self.image = image
+        self.files = files
+        self.is_presented = is_presented
+
+    def to_dict(self) -> Dict[str, Any]:
+        """
+        Converts the Plot object into a dictionary suitable for MongoDB insertion.
+        """
+        return {
+            "_id": self._id,
+            "user_id": self.user_id,
+            "image_name": self.image_name,
+            "created_time": self.created_time,
+            "image": self.image,
+            "files": self.files,
+            "is_presented": self.is_presented,
+        }
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "Plot":
+        """
+        A factory method that takes a MongoDB document (a dict) and returns a Plot instance with the same fields.
+        """
+        return cls(
+            user_id=data["user_id"],
+            image_name=data["image_name"],
+            image=data["image"],
+            files=data.get("files", []),
+            created_time=data.get("created_time"),
+            is_presented=data.get("is_presented", True),
+            _id=data.get("_id"),
+        )
