@@ -102,10 +102,12 @@ class JSONFormatter(logging.Formatter):
 class AppLogger:
     """Main logging class that handles all logging configuration and provides simple interface"""
     
-    def __init__(self, app_name: str = "smart-dashboard", log_dir: str = "logs"):
+    def __init__(self, app_name: str = "smart-dashboard", log_dir: str = "website/logs"):
         self.app_name = app_name
-        self.log_dir = Path(log_dir)
-        self.log_dir.mkdir(exist_ok=True)
+        # Always resolve log_dir relative to project root
+        project_root = Path(__file__).resolve().parent.parent.parent
+        self.log_dir = (project_root / log_dir).resolve()
+        self.log_dir.mkdir(parents=True, exist_ok=True)
         
         # Create main logger
         self.logger = logging.getLogger(app_name)
