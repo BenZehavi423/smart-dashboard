@@ -8,3 +8,5 @@ flask-jwt-extended
 werkzeug
 pytest
 pandas
+colorama
+
