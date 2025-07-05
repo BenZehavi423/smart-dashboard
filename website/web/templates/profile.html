@@ -4,6 +4,7 @@ My Profile
 {% endblock %}
 {% block content %}
 <h1>{{ user.username }}'s Profile Page</h1>
+<a href="{{ url_for('views.home') }}" class="button">Back to Home</a>
 <h2>My dashboard:</h2>
 <h2>My files:</h2>
 <a href="{{ url_for('views.upload_files') }}" class="button blue">Upload Files</a>

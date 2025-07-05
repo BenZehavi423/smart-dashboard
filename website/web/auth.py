@@ -20,6 +20,10 @@ def login_required(f):
 #route for user registration
 @auth.route('/register', methods=['GET', 'POST'])
 def register():
+
+    if 'username' in session:
+        return redirect(url_for('views.profile'))
+    
     if request.method == 'POST':
         #read form data
         username = request.form.get('username')
@@ -55,27 +59,36 @@ def register():
 
 @auth.route('/login', methods=['GET', 'POST'])
 def login():
-#     if request.method == 'POST':
-#         username = request.form.get('username')
-#         password = request.form.get('password')
-#         if not username or not password:
-#             flash('Both username and password are required.', 'error')
-#             return redirect(url_for('auth.login'))
-#         user = current_app.db.get_user_by_username(username)
-#         if user and user.password_hash and bcrypt.checkpw(password.encode(), user.password_hash.encode()):
-#             session['username'] = user.username
-#             flash('Logged in successfully!', 'success')
-#             return redirect(url_for('views.profile'))
-#         else:
-#             flash('Invalid username or password.', 'error')
-#             return redirect(url_for('auth.login'))
+    if 'username' in session:
+        return redirect(url_for('views.profile'))
+     
+    if request.method == 'POST':
+        # Read form data
+        username = request.form.get('username')
+        password = request.form.get('password')
+        # Check if any fields are empty
+        if not username or not password:
+            flash('Both username and password are required.', 'error')
+            return redirect(url_for('auth.login'))
+        # Check if user exists and password is correct
+        user = current_app.db.get_user_by_username(username)
+        if user and user.password_hash and bcrypt.checkpw(password.encode(), user.password_hash.encode()):
+            # Store user information in session
+            session['username'] = user.username
+            flash('Logged in successfully!', 'success')
+            return redirect(url_for('views.profile'))
+        else:
+            # Invalid credentials
+            flash('Invalid username or password.', 'error')
+            return redirect(url_for('auth.login'))
     return render_template('login.html'), 200
 
-# @auth.route('/logout')
-# def logout():
-#     session.pop('username', None)
-#     flash('You have been logged out.', 'success')
-#     return redirect(url_for('auth.login'))
+
+@auth.route('/logout')
+def logout():
+     session.pop('username', None)
+     flash('You have been logged out.', 'success')
+     return redirect(url_for('auth.login'))
 
 
 
