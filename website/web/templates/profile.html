@@ -10,17 +10,17 @@ My Profile
 {% if plots %}
     <div class="plot-gallery">
         <div class="plot-container">
-            <button class="nav-btn prev-btn" onclick="previousPlot()" id="prevBtn">&#10094;</button>
+            <button class="nav-btn prev-btn" onclick="previousPlot()" id="prevBtn">‹</button>
             <div class="plot-window">
                 <div class="plot-header">
                     <h3 id="currentPlotName">Plot Name</h3>
                     <button class="download-btn" onclick="downloadCurrentPlot()" title="Download Image">
-                        <span>⬇</span>
+                        Download Plot
                     </button>
                 </div>
                 <img id="currentPlot" src="" alt="Plot" style="max-width: 100%; height: auto;">
             </div>
-            <button class="nav-btn next-btn" onclick="nextPlot()" id="nextBtn">&#10095;</button>
+            <button class="nav-btn next-btn" onclick="nextPlot()" id="nextBtn">›</button>
         </div>
         <div class="plot-counter">
             <span id="plotCounter">1/{{ plots|length }}</span>
