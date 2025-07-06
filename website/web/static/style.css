@@ -4,6 +4,41 @@ body {
     margin: 0;
     padding: 0;
     color: #333;
+    min-height: 100vh;
+}
+
+body.full-height-layout {
+    display: flex;
+    flex-direction: column;
+}
+
+.start-pages {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 20px;
+    flex: 1;
+}
+
+.home-buttons {
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    gap: 30px;
+}
+
+.home-buttons h1 {
+    width: 100%;
+    margin: 0;
+}
+
+.home-buttons .button-container {
+    display: flex;
+    flex-direction: row;
+    gap: 20px;
+    justify-content: center;
 }
 
 header {
@@ -34,10 +69,21 @@ footer {
     background-color: #333;
     color: white;
     text-align: center;
-    padding: 10px 0;
-    position: fixed;
-    width: 100%;
-    bottom: 0;
+    padding: 3px 0;
+    margin-top: auto;
+}
+
+body.full-height-layout .container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+body.full-height-layout .content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
 }
 
 .container {
@@ -46,18 +92,17 @@ footer {
     padding: 0 15px;
 }
 
-
 .content {
-    padding: 20px;
+    padding: 100px;
     background-color: white;
     border-radius: 8px;
     box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
 }
 
-
 button,
 a.button {
     display: inline-block;
+    width: fit-content;
     margin: 10px;
     padding: 12px 28px;
     font-size: 18px;
@@ -92,6 +137,15 @@ a.button.red:hover {
     background-color: #d32f2f;
 }
 
+.button.green,
+a.button.green {
+    background-color: #28a745;
+}
+.button.green:hover,
+a.button.green:hover {
+    background-color: #218838;
+}
+
 h1 {
     font-size: 2.5rem;
     color: #333;
@@ -100,4 +154,62 @@ h1 {
     letter-spacing: 1px;
     text-align: center;
     text-shadow: 1px 1px 4px #e0e0e0;
+}
+
+.plot-gallery {
+    max-width: 800px;
+    margin: 20px auto;
+    text-align: center;
+}
+
+.plot-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 20px;
+}
+
+.plot-window {
+    border: 2px solid #ddd;
+    border-radius: 8px;
+    padding: 10px;
+    background: white;
+    min-height: 300px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.nav-btn {
+    background: #007bff;
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    cursor: pointer;
+    border-radius: 50%;
+    font-size: 18px;
+    margin: 0 10px;
+    transition: background-color 0.3s;
+}
+
+.nav-btn:hover {
+    background: #0056b3;
+}
+
+.plot-counter {
+    font-size: 16px;
+    margin: 10px 0;
+    color: #666;
+}
+
+.plot-actions {
+    margin: 20px 0;
+}
+
+.no-plots {
+    text-align: center;
+    padding: 40px;
+    color: #666;
+    font-style: italic;
 }

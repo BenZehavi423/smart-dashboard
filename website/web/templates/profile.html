@@ -5,13 +5,55 @@ My Profile
 {% block content %}
 <h1>{{ user.username }}'s Profile Page</h1>
 <a href="{{ url_for('views.home') }}" class="button">Back to Home</a>
-<h2>My dashboard:</h2>
+
+<h2>My Plots:</h2>
+{% if plots %}
+    <div class="plot-gallery">
+        <div class="plot-container">
+            <button class="nav-btn prev-btn" onclick="previousPlot()" id="prevBtn">‹</button>
+            <div class="plot-window">
+                <div class="plot-header">
+                    <h3 id="currentPlotName">Plot Name</h3>
+                    <button class="download-btn" onclick="downloadCurrentPlot()" title="Download Image">
+                        Download Plot
+                    </button>
+                </div>
+                <img id="currentPlot" src="" alt="Plot" style="max-width: 100%; height: auto;">
+            </div>
+            <button class="nav-btn next-btn" onclick="nextPlot()" id="nextBtn">›</button>
+        </div>
+        <div class="plot-counter">
+            <span id="plotCounter">1/{{ plots|length }}</span>
+        </div>
+    </div>
+{% else %}
+<div class="no-plots">
+    <p>No presented plots. Upload files and generate plots to see them here.</p>
+</div>
+{% endif %}
+
+<div class="plot-actions">
+    <a href="{{ url_for('views.edit_plots') }}" class="button blue">Edit Plots</a>
+    <a href="{{ url_for('views.analyze_data') }}" class="button green">Analyze My Data</a>
+</div>
+
 <h2>My files:</h2>
 <a href="{{ url_for('views.upload_files') }}" class="button blue">Upload Files</a>
+
 <h2>My details:</h2>
 <ul>
     <li><strong>Username:</strong> {{ user.username }}</li>
     <li><strong>Email:</strong> {{ user.email }}</li>
     <li>company details will be added in the future</li>
 </ul>
+
+<link rel="stylesheet" href="{{ url_for('static', filename='plots.css') }}">
+<script src="{{ url_for('static', filename='profile.js') }}"></script>
+<script>
+// Initialize plots data from server
+document.addEventListener('DOMContentLoaded', function() {
+    const plotsData = {{ plots|tojson }};
+    initializePlots(plotsData);
+});
+</script>
 {% endblock %}

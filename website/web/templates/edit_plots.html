@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block title %}
+Edit Plots
+{% endblock %}
+{% block content %}
+<h1>Edit Plots</h1>
+<a href="{{ url_for('views.profile') }}" class="button">Back to Profile</a>
+
+<div class="edit-plots-container">
+    <!-- Step 1: Select Plots to Present -->
+    <div class="step-section" id="step1">
+        <h2>Step 1: Select Plots to Present</h2>
+        <p>Choose which plots you want to display in your profile:</p>
+        
+        <div class="plots-grid">
+            {% for plot in all_plots %}
+            <div class="plot-card" onclick="togglePlotCard('{{ plot._id }}')" data-plot-id="{{ plot._id }}">
+                <div class="plot-checkbox" onclick="event.stopPropagation();">
+                    <input type="checkbox" id="plot_{{ plot._id }}" 
+                           {% if plot.is_presented %}checked{% endif %}
+                           onchange="togglePlotSelection('{{ plot._id }}', this.checked)">
+                    <label for="plot_{{ plot._id }}">Present in Profile</label>
+                </div>
+                <div class="plot-image">
+                    <img src="{{ plot.image }}" alt="{{ plot.image_name }}" style="max-width: 150px; height: auto;">
+                </div>
+                <div class="plot-info">
+                    <strong>{{ plot.image_name }}</strong><br>
+                    <small>Created: {{ plot.created_time[:19] if plot.created_time else 'Unknown' }}</small>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        
+        <div class="step-actions">
+            <button class="button blue" onclick="proceedToStep2()">Continue to Reordering</button>
+        </div>
+    </div>
+
+    <!-- Step 2: Reorder Selected Plots -->
+    <div class="step-section" id="step2" style="display: none;">
+        <h2>Step 2: Reorder Presented Plots</h2>
+        <p>Drag and drop to reorder your plots, or use the arrow buttons:</p>
+        
+        <div class="sort-controls">
+            <div class="sort-group">
+                <span class="sort-label">Sort by Name:</span>
+                <button class="button small" onclick="sortByName('asc')">A → Z</button>
+                <button class="button small" onclick="sortByName('desc')">Z → A</button>
+            </div>
+            <div class="sort-group">
+                <span class="sort-label">Sort by Date:</span>
+                <button class="button small" onclick="sortByDate('asc')">Oldest First</button>
+                <button class="button small" onclick="sortByDate('desc')">Newest First</button>
+            </div>
+            <div class="sort-group">
+                <button class="button" onclick="resetOrder()">Reset to Current Order</button>
+            </div>
+        </div>
+        
+        <div class="reorder-container">
+            <div id="reorderList" class="reorder-list">
+                <!-- Plots will be populated here -->
+            </div>
+        </div>
+        
+        <div class="step-actions">
+            <button class="button" onclick="backToStep1()">Back to Selection</button>
+            <button class="button blue" onclick="saveAllChanges()">Save All Changes</button>
+        </div>
+    </div>
+</div>
+
+<link rel="stylesheet" href="{{ url_for('static', filename='plots.css') }}">
+<script src="{{ url_for('static', filename='edit_plots.js') }}"></script>
+<script>
+// Initialize data from server
+document.addEventListener('DOMContentLoaded', function() {
+    const allPlots = {{ all_plots|tojson }};
+    const presentedPlots = {{ presented_plots|tojson }};
+    initializeEditPlots(allPlots, presentedPlots);
+});
+</script>
+{% endblock %} 
