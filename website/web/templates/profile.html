@@ -54,6 +54,23 @@ My Profile
 document.addEventListener('DOMContentLoaded', function() {
     const plotsData = {{ plots|tojson }};
     initializePlots(plotsData);
+    
+    // Check for success parameter in URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const successParam = urlParams.get('success');
+    
+    if (successParam === 'changes_saved') {
+        // Show temporary success message
+        showTemporarySuccessMessage(
+            'Changes Saved Successfully!',
+            'Your plot changes have been saved and are now visible in your profile.',
+            4000
+        );
+        
+        // Clean up the URL (remove the success parameter)
+        const newUrl = window.location.pathname;
+        window.history.replaceState({}, document.title, newUrl);
+    }
 });
 </script>
 {% endblock %}
