@@ -92,6 +92,15 @@ a.button.red:hover {
     background-color: #d32f2f;
 }
 
+.button.green,
+a.button.green {
+    background-color: #28a745;
+}
+.button.green:hover,
+a.button.green:hover {
+    background-color: #218838;
+}
+
 h1 {
     font-size: 2.5rem;
     color: #333;
@@ -100,4 +109,63 @@ h1 {
     letter-spacing: 1px;
     text-align: center;
     text-shadow: 1px 1px 4px #e0e0e0;
+}
+
+
+.plot-gallery {
+    max-width: 800px;
+    margin: 20px auto;
+    text-align: center;
+}
+
+.plot-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 20px;
+}
+
+.plot-window {
+    border: 2px solid #ddd;
+    border-radius: 8px;
+    padding: 10px;
+    background: white;
+    min-height: 300px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.nav-btn {
+    background: #007bff;
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    cursor: pointer;
+    border-radius: 50%;
+    font-size: 18px;
+    margin: 0 10px;
+    transition: background-color 0.3s;
+}
+
+.nav-btn:hover {
+    background: #0056b3;
+}
+
+.plot-counter {
+    font-size: 16px;
+    margin: 10px 0;
+    color: #666;
+}
+
+.plot-actions {
+    margin: 20px 0;
+}
+
+.no-plots {
+    text-align: center;
+    padding: 40px;
+    color: #666;
+    font-style: italic;
 }
