@@ -137,6 +137,47 @@ class MongoDBManager:
         result = self.users.delete_one({"_id": user_id})
         return result.deleted_count > 0
 
+# ----- USER PROFILE OPERATIONS -----
+    def create_user_profile(self, profile: UserProfile) -> str:
+        """
+        Creates a new user profile
+        :param profile: UserProfile object to save
+        :return: profile id
+        """
+        self.user_profiles.insert_one(profile.to_dict())
+        return profile._id
+    
+    def get_user_profile(self, user_id: str) -> Optional[UserProfile]:
+        """
+        Gets the user profile for a specific user
+        :param user_id: ID of the user
+        :return: UserProfile object or None if not found
+        """
+        data = self.user_profiles.find_one({"user_id": user_id})
+        return UserProfile.from_dict(data) if data else None
+    
+    def get_or_create_user_profile(self, user_id: str) -> UserProfile:
+        """
+        Gets existing user profile or creates a new one if it doesn't exist
+        :param user_id: ID of the user
+        :return: UserProfile object
+        """
+        profile = self.get_user_profile(user_id)
+        if not profile:
+            profile = UserProfile(user_id=user_id)
+            self.create_user_profile(profile)
+        return profile
+    
+    def update_user_profile(self, user_id: str, updates: Dict[str, Any]) -> bool:
+        """
+        Updates the user profile
+        :param user_id: ID of the user
+        :param updates: Dictionary of fields to update
+        :return: True if at least one doc was modified, otherwise False
+        """
+        result = self.user_profiles.update_one({"user_id": user_id}, {"$set": updates})
+        return result.modified_count > 0
+
 # ----- PLOT OPERATIONS -----
     def create_plot(self, plot: Plot) -> str:
         """
@@ -144,8 +185,15 @@ class MongoDBManager:
         :param plot: Plot object to save
         :return: plot id
         """
-        self.plots.insert_one(plot.to_dict())
-        return plot._id
+        try:
+            self.plots.insert_one(plot.to_dict())
+            logger.info(f"Plot created successfully: {plot.image_name}", 
+                        extra_fields={'plot_id': plot._id, 'user_id': plot.user_id, 'plot_name': plot.image_name})
+            return plot._id
+        except Exception as e:
+            logger.error(f"Failed to create plot: {plot.image_name}", 
+                         extra_fields={'user_id': plot.user_id, 'plot_name': plot.image_name, 'error': str(e)})
+            raise
     
     def get_plot(self, plot_id: str) -> Optional[Plot]:
         """
@@ -188,3 +236,80 @@ class MongoDBManager:
         """
         result = self.plots.update_one({"_id": plot_id}, {"$set": {"is_presented": is_presented}})
         return result.modified_count > 0
+    
+    def get_presented_plots_for_user_ordered(self, user_id: str) -> List[Plot]:
+        """
+        Returns presented plots for a user ordered according to user profile
+        :param user_id: ID of the user
+        :return: List of Plot objects in the correct order
+        """
+        # Get user profile with plot order
+        profile = self.get_or_create_user_profile(user_id)
+        
+        # Get all presented plots
+        presented_plots = self.get_plots_for_user(user_id, only_presented=True)
+        
+        # Create a dictionary for quick lookup
+        plots_dict = {plot._id: plot for plot in presented_plots}
+        
+        # Order plots according to profile order
+        ordered_plots = []
+        for plot_id in profile.presented_plot_order:
+            if plot_id in plots_dict:
+                ordered_plots.append(plots_dict[plot_id])
+        
+        # Add any plots that are presented but not in the order list (new plots)
+        for plot in presented_plots:
+            if plot._id not in profile.presented_plot_order:
+                ordered_plots.append(plot)
+        
+        return ordered_plots
+    
+    def update_plot_presentation_order(self, user_id: str, plot_order: List[str]) -> bool:
+        """
+        Updates the presentation order of plots for a user
+        :param user_id: ID of the user
+        :param plot_order: List of plot IDs in the desired order
+        :return: True if update was successful
+        """
+        try:
+            logger.info(f"Updating plot presentation order for user: {user_id}", 
+                        extra_fields={'user_id': user_id, 'plot_order_length': len(plot_order)})
+            
+            result = self.update_user_profile(user_id, {"presented_plot_order": plot_order})
+            
+            if result:
+                logger.info(f"Successfully updated plot presentation order for user: {user_id}")
+            else:
+                logger.error(f"Failed to update plot presentation order for user: {user_id}")
+            
+            return result
+        except Exception as e:
+            logger.error(f"Error updating plot presentation order for user: {user_id}", 
+                         extra_fields={'user_id': user_id, 'error': str(e)})
+            return False
+    
+    def update_multiple_plots(self, plot_updates: List[Dict[str, Any]]) -> bool:
+        """
+        Updates multiple plots at once
+        :param plot_updates: List of dicts with plot_id and updates
+        :return: True if all updates were successful
+        """
+        try:
+            logger.info(f"Updating {len(plot_updates)} plots", 
+                        extra_fields={'updates_count': len(plot_updates)})
+            
+            for update in plot_updates:
+                plot_id = update["plot_id"]
+                updates = {k: v for k, v in update.items() if k != "plot_id"}
+                self.plots.update_one({"_id": plot_id}, {"$set": updates})
+                
+                logger.debug(f"Plot updated: {plot_id}", 
+                             extra_fields={'plot_id': plot_id, 'updates': updates})
+            
+            logger.info(f"Successfully updated {len(plot_updates)} plots")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to update multiple plots", 
+                         extra_fields={'updates_count': len(plot_updates), 'error': str(e)})
+            return False
