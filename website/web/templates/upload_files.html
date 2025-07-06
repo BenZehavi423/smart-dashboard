@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block title %}
+Upload Files
+{% endblock %}
+{% block content %}
+<h1>Choose Files to Upload</h1>
+<a href="{{ url_for('views.profile') }}" class="button">Back to Profile</a>
+<div id="drop-area" style="border: 2px dashed #2196F3; padding: 30px; text-align: center; margin-bottom: 20px;">
+    <form id="upload-form" action="{{ url_for('views.upload_files') }}" method="post" enctype="multipart/form-data">
+        <input type="file" id="fileElem" name="file" accept=".csv" multiple required style="display:none;">
+        <label for="fileElem" class="button green" style="cursor:pointer;">Choose Files</label>
+        <span id="file-label">or drag files here</span>
+        <button type="submit" class="button blue">Upload</button>
+    </form>
+</div>
+<div id="error-messages" style="color: red;"></div>
+<h2>My files:</h2>
+<ul id="file-list">
+    {% for file in files %}
+        <li>{{ file.filename }}</li>
+    {% endfor %}
+</ul>
+<script>
+const dropArea = document.getElementById('drop-area');
+const fileElem = document.getElementById('fileElem');
+const uploadForm = document.getElementById('upload-form');
+const fileList = document.getElementById('file-list');
+const errorMessages = document.getElementById('error-messages');
+const fileLabel = document.getElementById('file-label');
+
+// Drag and drop handlers
+['dragenter', 'dragover'].forEach(eventName => {
+  dropArea.addEventListener(eventName, e => {
+    e.preventDefault();
+    e.stopPropagation();
+    dropArea.style.background = '#e3f2fd';
+  }, false);
+});
+['dragleave', 'drop'].forEach(eventName => {
+  dropArea.addEventListener(eventName, e => {
+    e.preventDefault();
+    e.stopPropagation();
+    dropArea.style.background = '';
+  }, false);
+});
+dropArea.addEventListener('drop', e => {
+  let files = e.dataTransfer.files;
+  fileElem.files = files;
+  fileLabel.textContent = Array.from(files).map(f => f.name).join(', ');
+});
+fileElem.addEventListener('change', e => {
+  fileLabel.textContent = Array.from(fileElem.files).map(f => f.name).join(', ');
+});
+
+// AJAX form submission
+//Prevent page reload and handle form via JavaScript (AJAX)
+uploadForm.addEventListener('submit', function(e) {
+  e.preventDefault(); // Prevent default form submission
+  // Clear previous error messages
+  errorMessages.textContent = '';
+  let formData = new FormData(uploadForm);
+
+  //Send file(s) asynchronously to the backend (AJAX POST)
+  fetch(uploadForm.action, {
+    method: 'POST',
+    body: formData
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.success) {
+      
+      // Update file list
+      fileList.innerHTML = '';
+      data.files.forEach(filename => {
+        let li = document.createElement('li');
+        li.textContent = filename;
+        fileList.appendChild(li);
+      });
+      // Reset file input
+      fileElem.value = '';
+      fileLabel.textContent = 'or drag files here';
+    } else {
+      errorMessages.textContent = data.errors.join('\n');
+    }
+  })
+  .catch(err => {
+    errorMessages.textContent = 'Upload failed.';
+  });
+});
+</script>
+{% endblock %}

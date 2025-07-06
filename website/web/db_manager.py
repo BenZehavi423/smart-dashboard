@@ -1,6 +1,6 @@
 from pymongo import MongoClient
 from typing import Optional, Dict, Any, List
-from web.models import File, Dataset, AnalysisResult, User
+from .models import File, Dataset, AnalysisResult, User
 
 class MongoDBManager:
     def __init__(self, uri: str = "mongodb://db:27017", db_name: str = "mydb"):
@@ -46,6 +46,16 @@ class MongoDBManager:
     def delete_file(self, file_id: str) -> bool:
         result = self.files.delete_one({"_id": file_id})
         return result.deleted_count > 0
+    
+    def get_files_for_user(self, user: User) -> List[File]:
+        """
+        Returns a list of File objects uploaded by the given user.
+        :param user: User object
+        :return: List of File objects
+        """
+        docs = self.files.find({"user_id": user._id})
+        return [File.from_dict(d) for d in docs]
+
     
 # ----- DATASET OPERATIONS -----
 
