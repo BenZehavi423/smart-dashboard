@@ -116,6 +116,41 @@ class User:
         )
 
 
+class UserProfile:
+    def __init__(self, user_id: str, presented_plot_order: Optional[List[str]] = None, _id: Optional[str] = None):
+        """
+        Initializes a new UserProfile instance.
+
+        :param user_id: ID of the user this profile belongs to
+        :param presented_plot_order: List of plot IDs in the order they should be presented
+        :param _id: Optional unique ID; if not provided, a UUID will be generated
+        """
+        self._id = _id or str(uuid.uuid4())
+        self.user_id = user_id
+        self.presented_plot_order = presented_plot_order or []
+
+    def to_dict(self) -> Dict[str, Any]:
+        """
+        Converts the UserProfile object into a dictionary suitable for MongoDB insertion.
+        """
+        return {
+            "_id": self._id,
+            "user_id": self.user_id,
+            "presented_plot_order": self.presented_plot_order,
+        }
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "UserProfile":
+        """
+        A factory method that takes a MongoDB document (a dict) and returns a UserProfile instance with the same fields.
+        """
+        return cls(
+            user_id=data["user_id"],
+            presented_plot_order=data.get("presented_plot_order", []),
+            _id=data.get("_id"),
+        )
+
+
 class Plot:
     def __init__(self, image_name: str, image: Any, files: List[str], created_time: Optional[datetime] = None,
                   is_presented: bool = True, user_id: Optional[str] = None, _id: Optional[str] = None):

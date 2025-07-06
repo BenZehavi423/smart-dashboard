@@ -1,6 +1,7 @@
 from pymongo import MongoClient
 from typing import Optional, Dict, Any, List
-from .models import File, Dataset, AnalysisResult, User, Plot
+from .models import File, Dataset, AnalysisResult, User, UserProfile, Plot
+from .logger import logger
 
 class MongoDBManager:
     def __init__(self, uri: str = "mongodb://db:27017", db_name: str = "mydb"):
@@ -12,6 +13,7 @@ class MongoDBManager:
         self.datasets = self.db["datasets"]
         self.analysis = self.db["analysis_results"]
         self.users = self.db["users"]
+        self.user_profiles = self.db["user_profiles"]
         self.plots = self.db["plots"]
 
 
