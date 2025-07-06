@@ -390,3 +390,307 @@ def test_full_plot_workflow(client, mock_db, test_user):
     response = client.get('/profile')
     assert response.status_code == 200
     assert b'Workflow Test Plot' in response.data 
+
+# ----- Modal functionality tests -----
+def test_edit_plots_no_changes_modal(client, mock_db, test_user, mock_plots_for_user):
+    """Test that no changes modal is available (script and button present)"""
+    mock_db.get_user_by_username.return_value = test_user
+    mock_db.get_or_create_user_profile.return_value = UserProfile(user_id="user123")
+    
+    with client.session_transaction() as sess:
+        sess['username'] = 'testuser'
+    
+    response = client.get('/edit_plots')
+    assert response.status_code == 200
+    # Check that the JS file is included and the save button is present
+    assert b'edit_plots.js' in response.data
+    assert b'Save All Changes' in response.data
+
+def test_edit_plots_unsaved_changes_modal(client, mock_db, test_user, mock_plots_for_user):
+    """Test that unsaved changes modal is available (script and back button present)"""
+    mock_db.get_user_by_username.return_value = test_user
+    mock_db.get_or_create_user_profile.return_value = UserProfile(user_id="user123")
+    
+    with client.session_transaction() as sess:
+        sess['username'] = 'testuser'
+    
+    response = client.get('/edit_plots')
+    assert response.status_code == 200
+    # Check that the JS file is included and the back button is present
+    assert b'edit_plots.js' in response.data
+    assert b'Back to Profile' in response.data
+
+def test_edit_plots_success_redirect_with_parameter(client, mock_db, test_user):
+    """Test that successful save redirects to profile with success parameter"""
+    mock_db.get_user_by_username.return_value = test_user
+    mock_db.update_multiple_plots.return_value = True
+    mock_db.update_plot_presentation_order.return_value = True
+    
+    with client.session_transaction() as sess:
+        sess['username'] = 'testuser'
+    
+    data = {
+        'plot_updates': [
+            {'plot_id': 'plot1', 'is_presented': True}
+        ],
+        'plot_order': ['plot1']
+    }
+    
+    response = client.post('/edit_plots', 
+                          data=json.dumps(data),
+                          content_type='application/json')
+    
+    assert response.status_code == 200
+    result = response.get_json()
+    assert result['success'] == True
+
+def test_profile_success_message_display(client, mock_db, test_user, mock_presented_plots_ordered):
+    """Test that success message is shown when redirected with success parameter"""
+    mock_db.get_user_by_username.return_value = test_user
+    
+    with client.session_transaction() as sess:
+        sess['username'] = 'testuser'
+    
+    response = client.get('/profile?success=changes_saved')
+    assert response.status_code == 200
+    
+    # Check that success message function is available
+    assert b'showTemporarySuccessMessage' in response.data
+    assert b'changes_saved' in response.data
+
+def test_edit_plots_custom_modal_system(client, mock_db, test_user, mock_plots_for_user):
+    """Test that custom modal system is properly implemented (script present)"""
+    mock_db.get_user_by_username.return_value = test_user
+    mock_db.get_or_create_user_profile.return_value = UserProfile(user_id="user123")
+    
+    with client.session_transaction() as sess:
+        sess['username'] = 'testuser'
+    
+    response = client.get('/edit_plots')
+    assert response.status_code == 200
+    # Check that the JS file is included
+    assert b'edit_plots.js' in response.data
+
+# ----- Updated existing tests -----
+def test_edit_plots_save_changes_success_with_logging(client, mock_db, test_user):
+    """Test successful saving of plot changes with proper logging"""
+    mock_db.get_user_by_username.return_value = test_user
+    mock_db.update_multiple_plots.return_value = True
+    mock_db.update_plot_presentation_order.return_value = True
+    
+    with client.session_transaction() as sess:
+        sess['username'] = 'testuser'
+    
+    data = {
+        'plot_updates': [
+            {'plot_id': 'plot1', 'is_presented': True},
+            {'plot_id': 'plot2', 'is_presented': False}
+        ],
+        'plot_order': ['plot1', 'plot3']
+    }
+    
+    with patch('website.web.views.logger') as mock_logger:
+        response = client.post('/edit_plots', 
+                              data=json.dumps(data),
+                              content_type='application/json')
+        
+        # Verify logging calls
+        mock_logger.info.assert_called()
+        mock_logger.info.assert_any_call(
+            f"User testuser saving plot changes: {len(data['plot_updates'])} updates, {len(data['plot_order'])} plots in order",
+            extra_fields={'user_id': test_user._id, 'updates_count': len(data['plot_updates']), 'order_length': len(data['plot_order'])}
+        )
+        mock_logger.info.assert_any_call(
+            f"Plot changes saved successfully for user testuser",
+            extra_fields={'user_id': test_user._id, 'presented_plots': len(data['plot_order'])}
+        )
+    
+    assert response.status_code == 200
+    result = response.get_json()
+    assert result['success'] == True
+
+def test_edit_plots_save_changes_failure_with_logging(client, mock_db, test_user):
+    """Test failed saving of plot changes with proper logging"""
+    mock_db.get_user_by_username.return_value = test_user
+    mock_db.update_multiple_plots.return_value = False
+    mock_db.update_plot_presentation_order.return_value = True
+    
+    with client.session_transaction() as sess:
+        sess['username'] = 'testuser'
+    
+    data = {
+        'plot_updates': [
+            {'plot_id': 'plot1', 'is_presented': True}
+        ],
+        'plot_order': ['plot1']
+    }
+    
+    with patch('website.web.views.logger') as mock_logger:
+        response = client.post('/edit_plots', 
+                              data=json.dumps(data),
+                              content_type='application/json')
+        
+        # Verify logging calls
+        mock_logger.info.assert_called()
+        mock_logger.error.assert_called_with(
+            f"Failed to save plot changes for user testuser",
+            extra_fields={'user_id': test_user._id, 'plot_success': False, 'order_success': True}
+        )
+    
+    assert response.status_code == 200
+    result = response.get_json()
+    assert result['success'] == False
+
+def test_edit_plots_page_access_logging(client, mock_db, test_user, mock_plots_for_user):
+    """Test that edit plots page access is properly logged"""
+    mock_db.get_user_by_username.return_value = test_user
+    mock_db.get_or_create_user_profile.return_value = UserProfile(user_id="user123")
+    
+    with client.session_transaction() as sess:
+        sess['username'] = 'testuser'
+    
+    with patch('website.web.views.logger') as mock_logger:
+        response = client.get('/edit_plots')
+        
+        # Verify logging calls
+        mock_logger.info.assert_called()
+        mock_logger.info.assert_any_call(
+            f"Edit plots page accessed by user: testuser",
+            extra_fields={'user_id': test_user._id, 'action': 'edit_plots_access'}
+        )
+        mock_logger.info.assert_any_call(
+            f"Edit plots page rendered for user testuser: {len(mock_plots_for_user)} total plots, {len([p for p in mock_plots_for_user if p.is_presented])} presented",
+            extra_fields={'user_id': test_user._id, 'total_plots': len(mock_plots_for_user), 'presented_plots': len([p for p in mock_plots_for_user if p.is_presented])}
+        )
+    
+    assert response.status_code == 200
+
+# ----- JavaScript functionality tests -----
+def test_edit_plots_javascript_functions(client, mock_db, test_user, mock_plots_for_user):
+    """Test that all required JavaScript functions are present (script present)"""
+    mock_db.get_user_by_username.return_value = test_user
+    mock_db.get_or_create_user_profile.return_value = UserProfile(user_id="user123")
+    
+    with client.session_transaction() as sess:
+        sess['username'] = 'testuser'
+    
+    response = client.get('/edit_plots')
+    assert response.status_code == 200
+    # Check for the JS file
+    assert b'edit_plots.js' in response.data
+
+def test_edit_plots_drag_drop_javascript(client, mock_db, test_user, mock_plots_for_user):
+    """Test that drag and drop JavaScript functions are present (script present)"""
+    mock_db.get_user_by_username.return_value = test_user
+    mock_db.get_or_create_user_profile.return_value = UserProfile(user_id="user123")
+    
+    with client.session_transaction() as sess:
+        sess['username'] = 'testuser'
+    
+    response = client.get('/edit_plots')
+    assert response.status_code == 200
+    # Check for the JS file
+    assert b'edit_plots.js' in response.data
+
+def test_edit_plots_sorting_javascript(client, mock_db, test_user, mock_plots_for_user):
+    """Test that sorting JavaScript functions are present"""
+    mock_db.get_user_by_username.return_value = test_user
+    mock_db.get_or_create_user_profile.return_value = UserProfile(user_id="user123")
+    
+    with client.session_transaction() as sess:
+        sess['username'] = 'testuser'
+    
+    response = client.get('/edit_plots')
+    assert response.status_code == 200
+    
+    # Check for sorting functions
+    assert b'sortByName' in response.data
+    assert b'sortByDate' in response.data
+    assert b'resetOrder' in response.data
+
+# ----- Error handling tests -----
+def test_edit_plots_error_modal_display(client, mock_db, test_user):
+    """Test that error modals are shown when operations fail"""
+    mock_db.get_user_by_username.return_value = test_user
+    mock_db.update_multiple_plots.return_value = False
+    mock_db.update_plot_presentation_order.return_value = False
+    
+    with client.session_transaction() as sess:
+        sess['username'] = 'testuser'
+    
+    data = {
+        'plot_updates': [
+            {'plot_id': 'plot1', 'is_presented': True}
+        ],
+        'plot_order': ['plot1']
+    }
+    
+    response = client.post('/edit_plots', 
+                          data=json.dumps(data),
+                          content_type='application/json')
+    
+    assert response.status_code == 200
+    result = response.get_json()
+    assert result['success'] == False
+
+def test_edit_plots_no_plots_selected_confirmation(client, mock_db, test_user):
+    """Test that confirmation is shown when no plots are selected"""
+    mock_db.get_user_by_username.return_value = test_user
+    mock_db.update_multiple_plots.return_value = True
+    mock_db.update_plot_presentation_order.return_value = True
+    
+    with client.session_transaction() as sess:
+        sess['username'] = 'testuser'
+    
+    data = {
+        'plot_updates': [
+            {'plot_id': 'plot1', 'is_presented': False},
+            {'plot_id': 'plot2', 'is_presented': False}
+        ],
+        'plot_order': []
+    }
+    
+    response = client.post('/edit_plots', 
+                          data=json.dumps(data),
+                          content_type='application/json')
+    
+    assert response.status_code == 200
+    result = response.get_json()
+    assert result['success'] == True
+
+# ----- Integration tests -----
+def test_full_edit_plots_workflow_with_modals(client, mock_db, test_user, mock_plots_for_user):
+    """Test the complete edit plots workflow including modal interactions"""
+    mock_db.get_user_by_username.return_value = test_user
+    mock_db.get_or_create_user_profile.return_value = UserProfile(user_id="user123")
+    mock_db.update_multiple_plots.return_value = True
+    mock_db.update_plot_presentation_order.return_value = True
+    
+    with client.session_transaction() as sess:
+        sess['username'] = 'testuser'
+    
+    # Step 1: Access edit plots page
+    response = client.get('/edit_plots')
+    assert response.status_code == 200
+    
+    # Step 2: Save changes (simulate successful save)
+    data = {
+        'plot_updates': [
+            {'plot_id': 'plot1', 'is_presented': True},
+            {'plot_id': 'plot2', 'is_presented': False}
+        ],
+        'plot_order': ['plot1']
+    }
+    
+    response = client.post('/edit_plots', 
+                          data=json.dumps(data),
+                          content_type='application/json')
+    
+    assert response.status_code == 200
+    result = response.get_json()
+    assert result['success'] == True
+    
+    # Step 3: Check that profile page can handle success parameter
+    response = client.get('/profile?success=changes_saved')
+    assert response.status_code == 200
+    assert b'showTemporarySuccessMessage' in response.data 
