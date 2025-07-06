@@ -4,6 +4,8 @@ let hasChanges = false;
 let plotSelections = {};
 let selectedPlotOrder = [];
 let plotsData = [];
+let originalPlotSelections = {}; // Store original state for comparison
+let originalPlotOrder = []; // Store original order for comparison
 
 // Initialize data from server
 function initializeEditPlots(allPlots, presentedPlots) {
@@ -12,11 +14,13 @@ function initializeEditPlots(allPlots, presentedPlots) {
     // Initialize plot selections
     allPlots.forEach(plot => {
         plotSelections[plot._id] = plot.is_presented;
+        originalPlotSelections[plot._id] = plot.is_presented; // Store original state
     });
     
     // Initialize selected plot order from current presented plots
     presentedPlots.forEach(plot => {
         selectedPlotOrder.push(plot._id);
+        originalPlotOrder.push(plot._id); // Store original order
     });
 }
 
@@ -51,6 +55,29 @@ function proceedToStep2() {
 function backToStep1() {
     document.getElementById('step2').style.display = 'none';
     document.getElementById('step1').style.display = 'block';
+}
+
+// Check if current state is different from original state
+function hasActualChanges() {
+    // Check if plot selections changed
+    for (const plotId in plotSelections) {
+        if (plotSelections[plotId] !== originalPlotSelections[plotId]) {
+            return true;
+        }
+    }
+    
+    // Check if plot order changed
+    if (selectedPlotOrder.length !== originalPlotOrder.length) {
+        return true;
+    }
+    
+    for (let i = 0; i < selectedPlotOrder.length; i++) {
+        if (selectedPlotOrder[i] !== originalPlotOrder[i]) {
+            return true;
+        }
+    }
+    
+    return false;
 }
 
 function populateReorderList() {
@@ -232,11 +259,8 @@ function handleDropZoneDrop(e) {
         const draggedPlotId = draggedItem.dataset.plotId;
         const currentIndex = selectedPlotOrder.indexOf(draggedPlotId);
         
-        console.log(`Drop operation: plot ${draggedPlotId} from position ${currentIndex} to position ${targetIndex}`);
-        
         // Don't do anything if dropping at the same position
         if (currentIndex === targetIndex) {
-            console.log('Drop cancelled: same position');
             return;
         }
         
@@ -245,8 +269,6 @@ function handleDropZoneDrop(e) {
         
         // Insert at target position
         selectedPlotOrder.splice(targetIndex, 0, draggedPlotId);
-        
-        console.log('Plot order updated after drag and drop');
         hasChanges = true;
         populateReorderList();
     }
@@ -287,10 +309,18 @@ function resetOrder() {
 }
 
 function saveAllChanges() {
+    // Check if there are actual changes compared to original state
+    if (!hasActualChanges()) {
+        // No actual changes were made - show modal with options
+        showNoChangesModal(
+            () => {}, // Continue editing - do nothing
+            () => window.location.href = '/profile'
+        );
+        return;
+    }
+    
     // Check if any plots are selected
     const selectedCount = Object.values(plotSelections).filter(isSelected => isSelected).length;
-    
-    console.log(`Saving plot changes: ${selectedCount} plots selected, ${selectedPlotOrder.length} in order`);
     
     if (selectedCount === 0) {
         // No plots selected - show confirmation popup
@@ -298,18 +328,14 @@ function saveAllChanges() {
         
         if (!confirmed) {
             // User cancelled - stay on the page
-            console.log('User cancelled saving changes - no plots selected');
             return;
         }
-        console.log('User confirmed saving with no plots selected');
     }
     
     const plotUpdates = Object.keys(plotSelections).map(plotId => ({
         plot_id: plotId,
         is_presented: plotSelections[plotId]
     }));
-    
-    console.log('Sending plot updates to server:', { plotUpdates, selectedPlotOrder });
     
     fetch('/edit_plots', {
         method: 'POST',
@@ -324,25 +350,209 @@ function saveAllChanges() {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            console.log('Plot changes saved successfully');
-            alert('Changes saved successfully!');
             hasChanges = false;
-            window.location.href = '/profile';
+            // Update original state to match current state
+            Object.assign(originalPlotSelections, plotSelections);
+            originalPlotOrder = [...selectedPlotOrder];
+            // Redirect to profile with success parameter
+            window.location.href = '/profile?success=changes_saved';
         } else {
-            console.error('Server returned error when saving plot changes');
-            alert('Error saving changes. Please try again.');
+            showInfoModal('Error', 'Error saving changes. Please try again.', 'OK');
         }
     })
     .catch(error => {
-        console.error('Error saving plot changes:', error);
-        alert('Error saving changes. Please try again.');
+        showInfoModal('Error', 'Error saving changes. Please try again.', 'OK');
     });
 }
 
 // Warn user before leaving page with unsaved changes
 window.addEventListener('beforeunload', function(e) {
-    if (hasChanges) {
+    if (hasChanges && hasActualChanges()) {
         e.preventDefault();
         e.returnValue = 'You have unsaved changes. Are you sure you want to leave?';
     }
-}); 
+});
+
+// Override the "Back to Profile" link to check for unsaved changes
+document.addEventListener('DOMContentLoaded', function() {
+    const backToProfileLink = document.querySelector('a[href*="profile"], a[href="/profile"], a.button[href*="profile"]');
+    
+    if (backToProfileLink) {
+        backToProfileLink.addEventListener('click', function(e) {
+            if (hasChanges && hasActualChanges()) {
+                e.preventDefault();
+                
+                // Clear the beforeunload warning by setting hasChanges to false temporarily
+                const originalHasChanges = hasChanges;
+                hasChanges = false;
+                
+                showUnsavedChangesModal(
+                    () => {
+                        // Continue editing - restore hasChanges
+                        hasChanges = originalHasChanges;
+                    },
+                    () => {
+                        // Discard changes - keep hasChanges as false and go to profile
+                        window.location.href = '/profile';
+                    }
+                );
+            }
+        });
+    }
+});
+
+// Custom modal system for edit_plots.js
+function createCustomModal(title, message, buttons) {
+    // Create modal overlay
+    const modalOverlay = document.createElement('div');
+    modalOverlay.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+    `;
+    
+    // Create modal content
+    const modalContent = document.createElement('div');
+    modalContent.style.cssText = `
+        background: white;
+        padding: 30px;
+        border-radius: 12px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        max-width: 400px;
+        text-align: center;
+        font-family: Arial, sans-serif;
+    `;
+    
+    // Create buttons HTML
+    const buttonsHTML = buttons.map((button, index) => `
+        <button id="customModalBtn${index}" style="
+            background: ${button.color};
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: background-color 0.3s;
+            margin: 0 5px;
+        ">${button.text}</button>
+    `).join('');
+    
+    modalContent.innerHTML = `
+        <h3 style="margin: 0 0 20px 0; color: #333; font-size: 20px;">${title}</h3>
+        <p style="margin: 0 0 25px 0; color: #666; line-height: 1.5;">
+            ${message}
+        </p>
+        <div style="display: flex; gap: 15px; justify-content: center;">
+            ${buttonsHTML}
+        </div>
+    `;
+    
+    // Add hover effects and click handlers for each button
+    buttons.forEach((button, index) => {
+        const btnElement = modalContent.querySelector(`#customModalBtn${index}`);
+        
+        btnElement.addEventListener('mouseenter', () => {
+            btnElement.style.backgroundColor = button.hoverColor;
+        });
+        btnElement.addEventListener('mouseleave', () => {
+            btnElement.style.backgroundColor = button.color;
+        });
+        
+        btnElement.addEventListener('click', () => {
+            button.action();
+            document.body.removeChild(modalOverlay);
+        });
+    });
+    
+    // Add modal to page
+    modalOverlay.appendChild(modalContent);
+    document.body.appendChild(modalOverlay);
+    
+    // Close modal when clicking outside
+    modalOverlay.addEventListener('click', (e) => {
+        if (e.target === modalOverlay) {
+            document.body.removeChild(modalOverlay);
+        }
+    });
+}
+
+// Custom modal functions
+function showCustomModal(options) {
+    createCustomModal(options.title, options.message, options.buttons);
+}
+
+function showNoChangesModal(onContinueEditing, onReturnToProfile) {
+    createCustomModal(
+        "No Changes Made",
+        "No changes were made to your plots.",
+        [
+            {
+                text: "Continue Editing",
+                color: "#007bff",
+                hoverColor: "#0056b3",
+                action: onContinueEditing || (() => {})
+            },
+            {
+                text: "Return to Profile",
+                color: "#6c757d",
+                hoverColor: "#5a6268",
+                action: onReturnToProfile || (() => {
+                    window.location.href = '/profile';
+                })
+            }
+        ]
+    );
+}
+
+function showUnsavedChangesModal(onContinueEditing, onDiscardChanges) {
+    createCustomModal(
+        "Unsaved Changes",
+        "You have unsaved changes. Are you sure you want to leave without saving?",
+        [
+            {
+                text: "Continue Editing",
+                color: "#007bff",
+                hoverColor: "#0056b3",
+                action: onContinueEditing || (() => {})
+            },
+            {
+                text: "Discard Changes",
+                color: "#dc3545",
+                hoverColor: "#c82333",
+                action: onDiscardChanges || (() => {
+                    window.location.href = '/profile';
+                })
+            }
+        ]
+    );
+}
+
+function showInfoModal(title, message, buttonText = "OK") {
+    createCustomModal(
+        title,
+        message,
+        [
+            {
+                text: buttonText,
+                color: "#007bff",
+                hoverColor: "#0056b3",
+                action: () => {}
+            }
+        ]
+    );
+}
+
+// Assign modal functions to global scope
+window.showModal = showCustomModal;
+window.showNoChangesModal = showNoChangesModal;
+window.showUnsavedChangesModal = showUnsavedChangesModal;
+window.showInfoModal = showInfoModal; 
