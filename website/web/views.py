@@ -171,7 +171,7 @@ def edit_plots():
 
 @views.route('/analyze_data', methods=['GET', 'POST'])
 @login_required
-def analyze_data():
+def analyze_data(): # TODO: analyze_data
     username = session.get('username')
     user = current_app.db.get_user_by_username(username)
     
