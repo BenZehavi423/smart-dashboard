@@ -1,13 +1,39 @@
 {% extends "base.html" %}
 {% block title %}
-My Home
+SmartDashboard
 {% endblock %}
+
 {% block content %}
-<div class="start-pages home-buttons">
-    <h1>Welcome to My Home Page</h1>
-    <div class="button-container">
-        <a href="{{ url_for('auth.register') }}" class="button">Sign Up</a>
-        <a href="{{ url_for('auth.login') }}" class="button">Login</a>
-    </div>
+<div class="hero-section">
+  <div class="hero-text">
+    <h1>Welcome to SmartDashboard</h1>
+    <p>Upload. Visualize. Get Smart Insights.</p>
+    {% if not session.username %}
+      <a href="{{ url_for('auth.register') }}" class="button blue">Get Started</a>
+    {% else %}
+      <a href="{{ url_for('views.profile') }}" class="button blue">Go to Dashboard</a>
+    {% endif %}
+  </div>
+  <div class="hero-image">
+    <img src="{{ url_for('static', filename='images/hero-data-viz.jpg') }}" alt="Data Visualization">
+  </div>
+</div>
+
+<div class="features-section">
+  <div class="feature">
+    <img src="{{ url_for('static', filename='images/simple-upload.jpg') }}" alt="Upload CSV">
+    <h3>Easy Upload</h3>
+    <p>Upload your CSV files and instantly preview your data.</p>
+  </div>
+  <div class="feature">
+    <img src="{{ url_for('static', filename='images/feature-insights.jpg') }}" alt="AI Insights">
+    <h3>AI Insights</h3>
+    <p>Let our AI agent extract smart explanations for you.</p>
+  </div>
+  <div class="feature">
+    <img src="{{ url_for('static', filename='images/cloud-storage.jpg') }}" alt="Cloud Storage">
+    <h3>Cloud Storage</h3>
+    <p>Secure, persistent data – accessible anytime.</p>
+  </div>
 </div>
 {% endblock %}

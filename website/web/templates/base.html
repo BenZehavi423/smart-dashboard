@@ -1,51 +1,55 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>{% block title %}
-        Home
-        {% endblock %}
-    </title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{% block title %}Home{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
+
 <body class="{% if request.endpoint in ['views.home', 'auth.login', 'auth.register'] %}full-height-layout{% endif %}">
-    <!-- Header -->
-    <header>
-        <h1>My Flask App</h1>
-        {% if session.username %}
-            <form action="{{ url_for('auth.logout') }}" method="get">
-                <button type="submit" class="button red">Logout</button>
-            </form>
-        {% endif %}
-        <p>Welcome to the most amazing website!</p>
-    </header>
-    <!-- Flash messages -->
-    {% with messages = get_flashed_messages(with_categories=true) %}
-      {% if messages %}
-        <div class="flash-container">
-          {% for category, message in messages %}
-            <div class="flash-message {{ category }}">
-              {{ message }}
-            </div>
-          {% endfor %}
-        </div>
-      {% endif %}
-    {% endwith %}
 
-
-    <!-- Main Content Section -->
-    <div class="container">
-        <div class="content">
-            {% block content %}
-
-            {% endblock %}
-        </div>
+  <!-- Navbar -->
+  <nav class="navbar">
+    <div class="navbar-left">
+      <img src="{{ url_for('static', filename='logo.jpg') }}" alt="Logo" class="logo">
     </div>
+    <div class="navbar-right">
+      <a href="{{ url_for('views.home') }}">Home</a>
+      {% if session.username %}
+        <a href="{{ url_for('views.upload_files') }}">Upload</a>
+        <a href="{{ url_for('views.profile') }}">Dashboard</a>
+        <a href="{{ url_for('views.analyze_data') }}">Insights</a>
+        <a href="{{ url_for('auth.logout') }}" class="button red">Logout</a>
+      {% else %}
+        <a href="{{ url_for('auth.login') }}">Login</a>
+        <a href="{{ url_for('auth.register') }}">Register</a>
+      {% endif %}
+    </div>
+  </nav>
 
-    <!-- Footer -->
-    <footer>
-        <p>&copy; 2025 My Flask App. All rights reserved.</p>
-    </footer>
+  <!-- Flash Messages -->
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div class="flash-container">
+        {% for category, message in messages %}
+          <div class="flash-message {{ category }}">{{ message }}</div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+
+  <!-- Main Content -->
+  <div class="container">
+    <div class="content">
+      {% block content %}{% endblock %}
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer>
+    <p>&copy; 2025 SmartDashboard. All rights reserved.</p>
+  </footer>
+
 </body>
 </html>
