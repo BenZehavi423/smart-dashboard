@@ -12,6 +12,19 @@ services:
     depends_on: # Ensure web starts after database
       - db
 
+  llm_service:
+    build:
+      context: ./llm_service
+    container_name: llm_service
+    ports:
+      - "5001:5001"
+    volumes:
+      - ./llm_service:/app
+    env_file:
+      - ./.env # Load the GEMINI_API_KEY from the .env file
+    networks: # <-- Add this
+      - my-network # <-- Add this
+
   db: # MongoDB database service
       image: mongo:latest
       hostname: db
