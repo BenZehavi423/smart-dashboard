@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}
+Analyze My Data
+{% endblock %}
+{% block content %}
+<h1>Analyze My Data</h1>
+<a href="{{ url_for('views.profile') }}" class="button">Back to Profile</a>
+
+<div class="analyze-container">
+    <!-- Future: Text Analysis Request -->
+    <div class="analysis-request" style="display: none;">
+        <h2>Request Analysis</h2>
+        <p>In the future, you'll be able to describe what analysis you want in plain text.</p>
+        <textarea placeholder="Describe the analysis you want..." rows="4" style="width: 100%; margin: 10px 0;"></textarea>
+        <button class="button blue">Generate Analysis</button>
+    </div>
+
+    <!-- TODO: analyze_data -->
+    <!-- Current: Image Upload -->
+    <div class="image-upload-section">
+        <h2>Upload Images</h2>
+        <p>Upload one or more images to add them to your profile:</p>
+        
+        <div class="upload-area">
+            <input type="file" id="imageUpload" multiple accept="image/*" style="display: none;">
+            <div class="upload-dropzone" onclick="document.getElementById('imageUpload').click()">
+                <div class="upload-content">
+                    <span class="upload-icon">📁</span>
+                    <p>Click to select images or drag and drop</p>
+                    <p class="upload-hint">Supports: PNG, JPG, JPEG, GIF</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Image Preview and Management -->
+    <div class="images-preview" id="imagesPreview" style="display: none;">
+        <h2>Preview and Manage Images</h2>
+        <p>Edit names and choose which images to save to your profile:</p>
+        
+        <div class="images-grid" id="imagesGrid">
+            <!-- Images will be added here dynamically -->
+        </div>
+        
+        <div class="save-actions">
+            <button class="button blue" onclick="saveSelectedImages()">Save Selected Images</button>
+            <button class="button" onclick="clearAllImages()">Clear All</button>
+        </div>
+    </div>
+</div>
+
+<link rel="stylesheet" href="{{ url_for('static', filename='analyze_data.css') }}">
+<script src="{{ url_for('static', filename='analyze_data.js') }}"></script>
+{% endblock %} 

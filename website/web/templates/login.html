@@ -4,6 +4,7 @@ Login
 {% endblock %}
 
 {% block content %}
+<div class="start-pages">
 <h2>Login</h2>
 <form method="POST" action="{{ url_for('auth.login') }}">
     <div>
@@ -26,4 +27,5 @@ Login
         {% endfor %}
     </ul>
 {% endif %}
+</div>
 {% endblock %}

@@ -276,4 +276,13 @@ def get_logger(app_name: str = "smart-dashboard", log_dir: str = "website/logs")
     return _logger_instance
 
 # Export the logger instance for direct usage
-logger = get_logger() 
+def get_global_logger():
+    """Get the global logger instance with lazy initialization"""
+    return get_logger()
+
+# Create a proxy object that will get the logger when accessed
+class LoggerProxy:
+    def __getattr__(self, name):
+        return getattr(get_global_logger(), name)
+
+logger = LoggerProxy() 
