@@ -6,6 +6,45 @@ My Profile
 <h1>{{ user.username }}'s Profile Page</h1>
 <a href="{{ url_for('views.home') }}" class="button">Back to Home</a>
 <h2>My dashboard:</h2>
+<div id="llm-section">
+    <h3>Ask the LLM</h3>
+    <form id="llm-form">
+        <textarea id="llm-query" name="query" rows="4" cols="50"></textarea>
+        <br>
+        <button type="submit" class="button blue">Ask</button>
+    </form>
+    <div id="llm-response" style="margin-top: 20px;"></div>
+</div>
+<script>
+const llmForm = document.getElementById('llm-form');
+const llmQuery = document.getElementById('llm-query');
+const llmResponse = document.getElementById('llm-response');
+
+llmForm.addEventListener('submit', function(e) {
+    e.preventDefault();
+
+    fetch('/ask_llm', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            query: llmQuery.value
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.error) {
+            llmResponse.textContent = 'Error: ' + data.error;
+        } else {
+            llmResponse.textContent = data.response;
+        }
+    })
+    .catch(err => {
+        llmResponse.textContent = 'An error occurred.';
+    });
+});
+</script>
 <h2>My files:</h2>
 <a href="{{ url_for('views.upload_files') }}" class="button blue">Upload Files</a>
 <h2>My details:</h2>

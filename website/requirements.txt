@@ -9,4 +9,4 @@ werkzeug
 pytest
 pandas
 colorama
-
+requests

@@ -2,6 +2,7 @@ from flask import Blueprint, render_template, request, jsonify, current_app, ses
 import os
 from .auth import login_required
 from .csv_processor import process_file
+import requests
 
 # Blueprint lets us organize routes into different files
 # we don't have to put all routes in the "views.py" module
@@ -66,3 +67,22 @@ def upload_files():
     #GET: render the upload page with current user's files
     user_files = current_app.db.get_files_for_user(user)
     return render_template('upload_files.html', files=user_files)
+
+@views.route('/ask_llm', methods=['POST'])
+@login_required
+def ask_llm():
+    data = request.get_json()
+    query = data.get('query')
+
+    if not query:
+        return jsonify({'error': 'Query is required'}), 400
+
+    try:
+        # The service name 'llm_service' is used as the hostname
+        llm_api_url = 'http://llm_service:5001/predict'
+        response = requests.post(llm_api_url, json={'query': query})
+        response.raise_for_status()  # Raises an exception for 4xx/5xx errors
+        return jsonify(response.json())
+    except requests.exceptions.RequestException as e:
+        # Log the error e
+        return jsonify({'error': 'The LLM service is currently unavailable.'}), 503
