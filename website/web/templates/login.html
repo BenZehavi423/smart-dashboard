@@ -19,7 +19,7 @@ Login
     <br>
     <button type="submit">Log In</button>
 </form>
-
+<p>Don't have an account?<a href="{{ url_for('auth.register') }}">Register</a></p>
 {% if get_flashed_messages() %}
     <ul style="color: red;">
         {% for message in get_flashed_messages() %}
