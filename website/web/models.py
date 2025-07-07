@@ -1,12 +1,12 @@
 from datetime import datetime
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 import uuid
 
 # uuid generates unique identifiers (if id didn't passed)
 
 
 class File:
-    def __init__(self, filename: str, upload_date: datetime = None, user_id: str = None, _id: str = None, preview=None):
+    def __init__(self, filename: str, upload_date: Optional[datetime] = None, user_id: Optional[str] = None, _id: Optional[str] = None, preview=None):
         self._id = _id or str(uuid.uuid4())
         self.filename = filename
         self.upload_date = upload_date or datetime.utcnow()
@@ -35,7 +35,7 @@ class File:
         )
 
 class Dataset:
-    def __init__(self, file_id: str, records: List[Dict[str, Any]], _id: str = None):
+    def __init__(self, file_id: str, records: List[Dict[str, Any]], _id: Optional[str] = None):
         self._id = _id or str(uuid.uuid4())
         self.file_id = file_id
         self.records = records
@@ -56,7 +56,7 @@ class Dataset:
         )
 
 class AnalysisResult:
-    def __init__(self, file_id: str, stats: Dict[str, Any], created_at: datetime = None, _id: str = None):
+    def __init__(self, file_id: str, stats: Dict[str, Any], created_at: Optional[datetime] = None, _id: Optional[str] = None):
         self._id = _id or str(uuid.uuid4())
         self.file_id = file_id
         self.stats = stats
@@ -81,7 +81,7 @@ class AnalysisResult:
     
 
 class User:
-    def __init__(self, username: str, email: str, password_hash: str, _id: str = None):
+    def __init__(self, username: str, email: str, password_hash: str, _id: Optional[str] = None):
         """
         Initializes a new User instance.
 
@@ -112,5 +112,92 @@ class User:
             username=data["username"],
             email=data["email"],
             password_hash=data["password_hash"],  # Assuming password_hash is stored in the dict
+            _id=data.get("_id"),
+        )
+
+
+class UserProfile:
+    def __init__(self, user_id: str, presented_plot_order: Optional[List[str]] = None, _id: Optional[str] = None):
+        """
+        Initializes a new UserProfile instance.
+
+        :param user_id: ID of the user this profile belongs to
+        :param presented_plot_order: List of plot IDs in the order they should be presented
+        :param _id: Optional unique ID; if not provided, a UUID will be generated
+        """
+        self._id = _id or str(uuid.uuid4())
+        self.user_id = user_id
+        self.presented_plot_order = presented_plot_order or []
+
+    def to_dict(self) -> Dict[str, Any]:
+        """
+        Converts the UserProfile object into a dictionary suitable for MongoDB insertion.
+        """
+        return {
+            "_id": self._id,
+            "user_id": self.user_id,
+            "presented_plot_order": self.presented_plot_order,
+        }
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "UserProfile":
+        """
+        A factory method that takes a MongoDB document (a dict) and returns a UserProfile instance with the same fields.
+        """
+        return cls(
+            user_id=data["user_id"],
+            presented_plot_order=data.get("presented_plot_order", []),
+            _id=data.get("_id"),
+        )
+
+
+class Plot:
+    def __init__(self, image_name: str, image: Any, files: List[str], created_time: Optional[datetime] = None,
+                  is_presented: bool = True, user_id: Optional[str] = None, _id: Optional[str] = None):
+        """
+        Initializes a new Plot instance.
+
+        :param image_name: Name of the image, can be changed by user before saving
+        :param image: The plot/image data itself
+        :param files: List of file IDs the plot was based on
+        :param created_time: Time and date of creating the image (saving to database)
+        :param is_presented: Boolean value, if true then plot is presented in profile
+        :param user_id: ID of the user that the plot belongs to
+        :param _id: Optional unique ID; if not provided, a UUID will be generated
+        """
+        self._id = _id or str(uuid.uuid4())
+        self.user_id = user_id
+        self.image_name = image_name
+        self.created_time = created_time or datetime.utcnow()
+        self.image = image
+        self.files = files
+        self.is_presented = is_presented
+
+    def to_dict(self) -> Dict[str, Any]:
+        """
+        Converts the Plot object into a dictionary suitable for MongoDB insertion.
+        """
+        return {
+            "_id": self._id,
+            "user_id": self.user_id,
+            "image_name": self.image_name,
+            "created_time": self.created_time,
+            "image": self.image,
+            "files": self.files,
+            "is_presented": self.is_presented,
+        }
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "Plot":
+        """
+        A factory method that takes a MongoDB document (a dict) and returns a Plot instance with the same fields.
+        """
+        return cls(
+            user_id=data["user_id"],
+            image_name=data["image_name"],
+            image=data["image"],
+            files=data.get("files", []),
+            created_time=data.get("created_time"),
+            is_presented=data.get("is_presented", True),
             _id=data.get("_id"),
         )

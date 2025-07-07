@@ -9,7 +9,7 @@
     </title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
-<body>
+<body class="{% if request.endpoint in ['views.home', 'auth.login', 'auth.register'] %}full-height-layout{% endif %}">
     <!-- Header -->
     <header>
         <h1>My Flask App</h1>

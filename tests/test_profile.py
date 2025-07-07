@@ -52,7 +52,7 @@ def test_profile_page_data_correctness(client, mock_db):
     assert b'alice@example.com' in response.data
     # Check that the profile page structure is correct
     assert b'Profile Page' in response.data
-    assert b'My dashboard:' in response.data
+    assert b'My Plots:' in response.data
     assert b'My files:' in response.data
     assert b'My details:' in response.data
 
