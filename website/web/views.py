@@ -5,6 +5,8 @@ from .csv_processor import process_file
 from .models import Plot
 from .logger import logger
 import requests
+from .llm_client import generate_insights_for_any_file
+
 
 # Blueprint lets us organize routes into different files
 # we don't have to put all routes in the "views.py" module
@@ -249,3 +251,43 @@ def analyze_data(): # TODO: analyze_data
                 extra_fields={'user_id': user._id, 'files_count': len(user_files)})
 
     return render_template('analyze_data.html', user=user, files=user_files)
+
+
+@views.route('/dashboard', methods=['GET'])
+@login_required
+def dashboard():
+    username = session.get('username')
+    user = current_app.db.get_user_by_username(username)
+
+    logger.info(f"Dashboard page accessed by user: {username}",
+                extra_fields={'user_id': user._id, 'action': 'dashboard_access'})
+    
+    dashboard_doc = current_app.db.get_dashboard_for_user(user._id)
+
+    return render_template('dashboard.html', user=user, dashboard=dashboard_doc), 200
+
+
+
+@views.route('/dashboard/create', methods=['POST'])
+@login_required
+def create_dashboard():
+    # Identify current user
+    username = session.get('username')
+    user = current_app.db.get_user_by_username(username)
+
+    try:
+        # Generate insights from any available file (preview-based prompt to LLM)
+        file_id, insights = generate_insights_for_any_file(user._id) 
+
+        # Persist a new dashboard entry (we keep history by creating a new doc each time)
+        current_app.db.create_dashboard(user_id=user._id, file_id=file_id, insights=insights)
+
+        logger.info("Dashboard created", extra_fields={'user_id': user._id, 'file_id': file_id})
+        flash("הדשבורד נוצר בהצלחה!", "success")
+    except FileNotFoundError as e:
+        flash(str(e), "error")
+    except Exception as e:
+        logger.error(f"Dashboard creation failed: {e}", extra_fields={'user_id': user._id})
+        flash("אירעה שגיאה ביצירת הדשבורד. נסי שוב מאוחר יותר.", "error")
+
+    return redirect(url_for('views.dashboard')), 302

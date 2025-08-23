@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="container">
+  <h1>דשבורד</h1>
+
+  {% if dashboard and dashboard.insights %}
+    <div class="insights-grid">
+      {% for text in dashboard.insights %}
+        <div class="insight-card">
+          <h3>תובנה</h3>
+          <p>{{ text }}</p>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p>לא קיים עדיין דשבורד למשתמש.</p>
+    <form method="POST" action="{{ url_for('views.create_dashboard') }}">
+      <button class="button blue" type="submit">Create Dashboard</button>
+    </form>
+  {% endif %}
+</div>
+
+<style>
+.insights-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill,minmax(260px,1fr));
+  gap: 14px;
+  margin-top: 16px;
+}
+.insight-card {
+  background: #fff;
+  border: 1px solid #e6e6e6;
+  border-radius: 12px;
+  padding: 14px;
+  box-shadow: 0 2px 6px rgba(0,0,0,.06);
+}
+.insight-card h3 { margin: 0 0 8px; font-size: 16px; }
+.insight-card p { margin: 0; line-height: 1.4; }
+</style>
+{% endblock %}

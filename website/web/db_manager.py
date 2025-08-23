@@ -2,6 +2,7 @@ from pymongo import MongoClient
 from typing import Optional, Dict, Any, List
 from .models import File, Dataset, AnalysisResult, User, UserProfile, Plot
 from .logger import logger
+from datetime import datetime
 
 class MongoDBManager:
     def __init__(self, uri: str = "mongodb://db:27017", db_name: str = "mydb"):
@@ -15,6 +16,8 @@ class MongoDBManager:
         self.users = self.db["users"]
         self.user_profiles = self.db["user_profiles"]
         self.plots = self.db["plots"]
+        self.dashboards = self.db["dashboards"]
+
 
 
 # ----- FILE OPERATIONS -----
@@ -58,7 +61,13 @@ class MongoDBManager:
         """
         docs = self.files.find({"user_id": user._id})
         return [File.from_dict(d) for d in docs]
-
+    
+    def get_any_file(self) -> Optional[File]:
+        """
+        Return any File document from the collection (first match), or None if empty.
+        """
+        doc = self.files.find_one({})
+        return File.from_dict(doc) if doc else None
     
 # ----- DATASET OPERATIONS -----
 
@@ -313,3 +322,32 @@ class MongoDBManager:
             logger.error(f"Failed to update multiple plots", 
                          extra_fields={'updates_count': len(plot_updates), 'error': str(e)})
             return False
+        
+
+
+# ----- DASHBOARD OPERATIONS -----
+    def create_dashboard(self, user_id: str, file_id: str, insights: List[str]) -> str:
+        """
+        Creates a new dashboard entry
+        :param user_id: ID of the user
+        :param file_id: ID of the associated file
+        :param insights: List of insights for the dashboard
+        :return: dashboard id
+        """
+        dashboard = {
+            "user_id": user_id,
+            "file_id": file_id,
+            "created_time": datetime.utcnow(),
+            "insights": insights
+        }
+        result = self.dashboards.insert_one(dashboard)
+        return str(result.inserted_id)
+    
+    def get_dashboard_for_user(self, user_id: str) -> Optional[Dict[str, Any]]:
+        return self.dashboards.find_one({"user_id": user_id})
+    
+    def delete_dashboard(self, user_id: str) -> bool:
+        #notice!!!! delet by user id' if we add multiple dashboard we need to change this
+        result = self.dashboards.delete_one({"user_id": user_id})
+        return result.deleted_count > 0
+
