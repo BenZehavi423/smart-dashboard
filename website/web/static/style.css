@@ -395,3 +395,50 @@ h1 {
     font-weight: bold;
     margin-top: 10px;
 }
+
+/* ===== PROFILE DASHBOARD STYLE ===== */
+
+.page-title {
+    font-size: 2.8rem;
+    font-weight: bold;
+    text-align: center;
+    margin-bottom: 40px;
+    color: #2c3e50;
+}
+
+.dashboard-section {
+    background-color: #f7faff;
+    border-radius: 10px;
+    padding: 30px 40px;
+    margin-bottom: 40px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+}
+
+.dashboard-section h2 {
+    font-size: 1.6rem;
+    color: #34495e;
+    margin-bottom: 20px;
+    border-bottom: 2px solid #e0e0e0;
+    padding-bottom: 8px;
+}
+
+.dashboard-section ul {
+    list-style: none;
+    padding: 0;
+}
+
+.dashboard-section li {
+    padding: 6px 0;
+    font-size: 1rem;
+    color: #555;
+}
+
+#llm-form textarea {
+    width: 100%;
+    max-width: 100%;
+    font-size: 1rem;
+    padding: 12px;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+    resize: vertical;
+}
