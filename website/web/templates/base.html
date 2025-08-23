@@ -18,7 +18,7 @@
       <a href="{{ url_for('views.home') }}">Home</a>
       {% if session.username %}
         <a href="{{ url_for('views.upload_files') }}">Upload</a>
-        <a href="{{ url_for('views.profile') }}">Dashboard</a>
+        <a href="{{ url_for('views.profile') }}">Profile</a>
         <a href="{{ url_for('views.analyze_data') }}">Insights</a>
         <a href="{{ url_for('auth.logout') }}" class="button red">Logout</a>
       {% else %}

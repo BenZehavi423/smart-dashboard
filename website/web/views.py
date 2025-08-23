@@ -4,6 +4,7 @@ from .auth import login_required
 from .csv_processor import process_file
 from .models import Plot
 from .logger import logger
+import requests
 
 # Blueprint lets us organize routes into different files
 # we don't have to put all routes in the "views.py" module

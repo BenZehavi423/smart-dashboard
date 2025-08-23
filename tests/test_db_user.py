@@ -20,8 +20,8 @@ def test_home_page(client):
     """Test accessing the home page"""
     response = client.get('/')
     assert response.status_code == 200
-    assert b'Welcome to My Home Page' in response.data
-    assert b'Sign Up' in response.data
+    assert b'Welcome to SmartDashboard' in response.data
+    assert b'Get Started' in response.data
     assert b'Login' in response.data
 
 def test_signup_button_redirects_to_register_page(client):
