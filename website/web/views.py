@@ -5,7 +5,7 @@ from .csv_processor import process_file
 from .models import Plot
 from .logger import logger
 import requests
-from .llm_client import generate_insights_for_any_file
+from .llm_client import generate_insights_for_file
 
 
 # Blueprint lets us organize routes into different files
@@ -268,6 +268,31 @@ def dashboard():
 
 
 
+
+@views.route('/dashboard/files', methods=['GET'])
+@login_required
+def list_user_files():
+    username = session.get('username')
+    user = current_app.db.get_user_by_username(username)
+    user_files = current_app.db.get_files_for_user(user)
+
+    logger.info(f"User {username} requested file list",
+                extra_fields={'user_id': user._id, 'files_count': len(user_files)})
+
+    files_payload = [
+        {
+            "_id": f._id,
+            "filename": f.filename,
+            "upload_date": f.upload_date.isoformat() if f.upload_date else None,
+        }
+        for f in user_files
+    ]
+    return jsonify({'files': files_payload}), 200
+
+
+
+
+
 @views.route('/dashboard/create', methods=['POST'])
 @login_required
 def create_dashboard():
@@ -275,19 +300,35 @@ def create_dashboard():
     username = session.get('username')
     user = current_app.db.get_user_by_username(username)
 
+    payload = request.get_json(silent=True) or {}
+    logger.info(f"User {username} initiated dashboard creation",
+                extra_fields={'user_id': user._id, 'payload': payload})
+    
+    file_id = payload.get('file_id') or request.form.get('file_id')
+    if not file_id:
+        logger.warning(f"User {username} tried to create dashboard without selecting file",
+                       extra_fields={'user_id': user._id})
+        return jsonify({"success": False, "error": "Please select a file to generate a dashboard."}), 400
+
+    f = current_app.db.get_file(file_id)
+    if not f or f.user_id != user._id:
+        logger.warning(f"Unauthorized dashboard creation attempt by {username}",
+                       extra_fields={'user_id': user._id, 'file_id': file_id})
+        return jsonify({"success": False, "error": "You are not authorized to use the selected file."}), 403
+
     try:
-        # Generate insights from any available file (preview-based prompt to LLM)
-        file_id, insights = generate_insights_for_any_file(user._id) 
+        # Generate insights from available file (preview-based prompt to LLM)
+        file_id, insights = generate_insights_for_file(file_id) 
 
         # Persist a new dashboard entry (we keep history by creating a new doc each time)
         current_app.db.create_dashboard(user_id=user._id, file_id=file_id, insights=insights)
 
         logger.info("Dashboard created", extra_fields={'user_id': user._id, 'file_id': file_id})
-        flash("הדשבורד נוצר בהצלחה!", "success")
-    except FileNotFoundError as e:
-        flash(str(e), "error")
-    except Exception as e:
-        logger.error(f"Dashboard creation failed: {e}", extra_fields={'user_id': user._id})
-        flash("אירעה שגיאה ביצירת הדשבורד. נסי שוב מאוחר יותר.", "error")
+        flash("Dashboard created successfully", "success")
 
-    return redirect(url_for('views.dashboard')), 302
+        return jsonify({"success": True, "redirect": url_for('views.dashboard')}), 200
+    
+    except Exception as e:
+        logger.error(f"Failed to create dashboard: {e}", extra_fields={'user_id': user._id, 'file_id': file_id})
+        return jsonify({"success": False, "error": "An unexpected error occurred while creating the dashboard."}), 500
+

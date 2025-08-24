@@ -88,3 +88,22 @@ def generate_insights_for_any_file(user_id: str) -> tuple[str, list[str]]:
 
     # limit to a reasonable amount; can be adjusted later
     return f._id, insights[:12]
+
+def generate_insights_for_file(file_id: str) -> tuple[str, list[str]]:
+    """
+    Given a file_id, fetch the File from DB, build a fixed prompt from its preview,
+    call the LLM, and return (file_id, insights).
+    """
+    f = current_app.db.get_file(file_id)
+    if not f:
+        raise FileNotFoundError("Selected file not found in the system.")
+    preview_rows = f.preview or []
+    if not preview_rows:
+        raise ValueError("Selected file has no preview available. Please re-upload the CSV.")
+    prompt = build_fixed_prompt_from_preview(f.filename, preview_rows)
+    insights = request_llm(prompt)
+    if not insights:
+        raise RuntimeError("LLM service returned no insights.")
+    return f._id, insights[:12]
+
+  
