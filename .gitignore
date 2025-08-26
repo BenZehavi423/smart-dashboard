@@ -13,29 +13,30 @@ dist/
 # Virtual environments
 env/
 venv/
-.env
+smart-dashboard/.env
 <<<<<<< HEAD
 *.pyc[codg]
-
+.venv
 # Docker
 *.log
 *.pid
 .enc
 docker-compose.override.yml
 =======
-.venv/
+smart-dashboard/.venv/
 ENV/
 env.bak/
 venv.bak/
 >>>>>>> 4684010d4bbf9b5b634b2f0e4ca80a313e8518be
+.env
 
 # IDE
 .vscode/
-.idea/
+../.idea/
 *.swp
 *.swo
 *~
-
+.idea
 # Testing
 .coverage
 .coverage.*
