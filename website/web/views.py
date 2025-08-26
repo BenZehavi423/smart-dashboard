@@ -54,28 +54,37 @@ def upload_files():
     # Check if user is logged in
     # If not, redirect to login page
     if 'username' not in session:
+        logger.warning("Unauthorized access to upload_files")
         return redirect(url_for('auth.login'))
+    
     user = current_app.db.get_user_by_username(session['username'])
-
+    logger.info(f"Upload files page accessed by user: {user.username}",
+                extra_fields={'user_id': user._id, 'action': 'upload_files_access'})
+    
     # Handle file upload via AJAX post request
     # POST: process uploaded files
     if request.method == 'POST':
         files = request.files.getlist('file')
+        logger.info(f"User {user.username} uploading {len(files)} files")
         failed_files = []
 
         for file in files:
             if file and file.filename and allowed_file(file.filename):
+                logger.debug(f"Processing file: {file.filename}")
                 try:
                     #Process the file and attach user_id + preview
                     processed_file = process_file(file, user._id)
                     current_app.db.create_file(processed_file)
+                    logger.info(f"File {file.filename} uploaded successfully for user {user.username}")
 
                 except Exception as e:
                     # If processing fails, log the error
+                    logger.error(f"Failed to process file {file.filename} for user {user.username}: {e}")
                     failed_files.append(f"{file.filename}: {str(e)}")
 
             # If file is not valid, log the error
             else:
+                logger.warning(f"Invalid file upload attempt by user {user.username}: {getattr(file, 'filename', 'unknown')}")
                 failed_files.append(f"Invalid file: {getattr(file, 'filename', 'unknown')}")
 
         # Return JSON response to the frontend
