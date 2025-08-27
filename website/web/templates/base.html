@@ -13,7 +13,20 @@
   <!-- Navbar -->
   <nav class="navbar">
     <div class="navbar-left">
-      <img src="{{ url_for('static', filename='logo.jpg') }}" alt="Logo" class="logo">
+      {% if request.endpoint in ['auth.login', 'auth.register'] %}
+        <a href="{{ url_for('views.home') }}" class="back-home">
+          <span class="icon-door" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M4 21h16"/>
+              <path d="M6 21V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v16"/>
+              <circle cx="14" cy="12" r="1"/>
+              <path d="M3 12h5"/>
+              <path d="M6 9l2 3-2 3"/>
+            </svg>
+          </span>
+          <span>Back to Home</span>
+        </a>
+      {% endif %}
     </div>
     <div class="navbar-center">SmartDashboard</div>
     <div class="navbar-right">

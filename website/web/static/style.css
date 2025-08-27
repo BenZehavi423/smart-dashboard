@@ -214,19 +214,38 @@ h1 {
     height: 45px;
 }
 
-/* Centered brand title */
 .navbar-center {
     position: absolute;
     left: 50%;
     transform: translateX(-50%);
     font-weight: 1000;
     letter-spacing: 0.5px;
-    font-size: 35px;
+    font-size: 50px;
 }
 
 .navbar-right {
     display: flex;
     align-items: center;
+    margin-left: 0; /* keep menu aligned to the left */
+}
+
+/* Back to Home button on auth pages */
+.back-home {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    text-decoration: none;
+    color: black;
+    font-weight: 600;
+    font-size: 20px;
+}
+
+.back-home:hover { color: #0d47a1; }
+
+.back-home .icon-door svg {
+    width: 22px;
+    height: 22px;
+    display: block;
 }
 
 .navbar-right a {
@@ -357,6 +376,104 @@ h1 {
 .feature p {
     font-size: 1rem;
     color: #666;
+}
+
+/* ===== AUTH PAGES ===== */
+.auth-page .auth-form {
+    max-width: 480px;
+    width: 100%;
+}
+
+/* Center auth page content */
+.auth-page {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.auth-page .form-row {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    margin-bottom: 18px;
+}
+
+.auth-page label {
+    font-size: 1.1rem;
+    color: #34495e;
+}
+
+.auth-page input[type="text"],
+.auth-page input[type="password"] {
+    padding: 14px 16px;
+    font-size: 20px !important;
+    line-height: 1.5;
+    border-radius: 6px;
+    border: 1px solid #cbd5e1;
+}
+
+.auth-page input::placeholder {
+    font-size: 18px !important;
+}
+
+.auth-page input[type="text"]:focus,
+.auth-page input[type="password"]:focus {
+    font-size: 20px !important;
+}
+
+.auth-page .auth-form input[type="text"],
+.auth-page .auth-form input[type="password"] {
+    font-size: 20px !important;
+}
+
+.auth-page button[type="submit"] {
+    width: 60%;
+    max-width: 320px;
+    display: block;
+    margin: 16px auto 0;
+    font-size: 1.15rem;
+}
+
+.auth-page button[type="submit"] {
+    width: 100%;
+    font-size: 1.1rem;
+    padding: 14px 24px;
+}
+
+.auth-switch {
+    margin-top: 16px;
+    text-align: center;
+}
+
+.auth-switch .button.blue {
+    margin: 0 0 0 8px;
+    padding: 10px 20px;
+    font-size: 1rem;
+}
+
+/* Flash messages on auth pages */
+.flash-list {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 12px 0;
+}
+
+.flash-item {
+    padding: 10px 12px;
+    border-radius: 6px;
+    margin-bottom: 8px;
+    font-size: 0.95rem;
+}
+
+.flash-item.success {
+    background: #e8f5e9;
+    color: #2e7d32;
+}
+
+.flash-item.error {
+    background: #ffebee;
+    color: #c62828;
 }
 
 /* ===== UPLOAD PAGE ===== */
