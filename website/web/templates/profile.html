@@ -6,16 +6,25 @@ Dashboard
 
 <h1 class="page-title">{{ user.username }}'s Profile Page</h1>
 
-<!-- 2 columns side by side (like table)
- on the left- the user's details, and a button "Edit"
- on the right- list of visited business pages \ pages with editing privileges -->
-
 <div class="dashboard-section">
   <h2>My Details</h2>
   <ul>
     <li><strong>Username:</strong> {{ user.username }}</li>
-    <li><strong>Email:</strong> {{ user.email }}</li>
-    <li><strong>Company:</strong> Coming soon</li>
+    <li><strong>Email:</strong> {{ user.email if user.email else "N/A" }}</li>
+    <li><strong>Phone Number:</strong> {{ user.phone if user.phone else "N/A" }}</li>
+  </ul>
+</div>
+
+<div class="dashboard-section">
+  <h2>My Businesses</h2>
+  <ul>
+    {% for business in businesses %}
+      <li>
+        <a href="/business_page/{{ business.name }}">
+          {{ business.name }}
+        </a>
+      </li>
+    {% endfor %}
   </ul>
 </div>
 

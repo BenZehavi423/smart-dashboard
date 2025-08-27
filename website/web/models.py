@@ -81,7 +81,7 @@ class AnalysisResult:
     
 
 class User:
-    def __init__(self, username: str, email: str, password_hash: str, _id: Optional[str] = None):
+    def __init__(self, username: str, email: str, password_hash: str, phone: Optional[str] = None, _id: Optional[str] = None):
         """
         Initializes a new User instance.
 
@@ -95,6 +95,7 @@ class User:
         self.username = username
         self.email = email
         self.password_hash = password_hash
+        self.phone = phone
 
     #Converts the User object into a dictionary suitable for MongoDB insertion.
     def to_dict(self) -> Dict[str, Any]:
@@ -103,6 +104,7 @@ class User:
             "username": self.username,
             "email": self.email,
             "password_hash": self.password_hash,  # Assuming password_hash is set elsewhere
+            "phone": self.phone,
         }
 
     @classmethod
@@ -112,6 +114,7 @@ class User:
             username=data["username"],
             email=data["email"],
             password_hash=data["password_hash"],  # Assuming password_hash is stored in the dict
+            phone=data["phone"],
             _id=data.get("_id"),
         )
 
