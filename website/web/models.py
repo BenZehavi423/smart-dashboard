@@ -6,11 +6,11 @@ import uuid
 
 
 class File:
-    def __init__(self, filename: str, upload_date: Optional[datetime] = None, user_id: Optional[str] = None, _id: Optional[str] = None, preview=None):
+    def __init__(self, business_id: str, filename: str, upload_date: Optional[datetime] = None, _id: Optional[str] = None, preview=None):
         self._id = _id or str(uuid.uuid4())
         self.filename = filename
         self.upload_date = upload_date or datetime.now(UTC)
-        self.user_id = user_id
+        self.business_id = business_id
         self.preview = preview or [] # Placeholder for file preview, if needed
 
     def to_dict(self) -> Dict[str, Any]:
@@ -19,7 +19,7 @@ class File:
             "_id": self._id,
             "filename": self.filename,
             "upload_date": self.upload_date,
-            "user_id": self.user_id,
+            "business_id": self.business_id,
             "preview": self.preview,  # Include preview if needed
         }
 
@@ -29,7 +29,7 @@ class File:
         return cls(
             filename=data["filename"],
             upload_date=data.get("upload_date"),
-            user_id=data.get("user_id"),
+            business_id=data.get("business_id"),
             _id=data.get("_id"),
             preview=data.get("preview", []),  # Handle preview if it exists
         )
@@ -117,8 +117,8 @@ class User:
 
 
 class Plot:
-    def __init__(self, image_name: str, image: Any, files: List[str], created_time: Optional[datetime] = None,
-                  is_presented: bool = True, user_id: Optional[str] = None, _id: Optional[str] = None):
+    def __init__(self, business_id: str, image_name: str, image: Any, files: List[str], created_time: Optional[datetime] = None,
+                  is_presented: bool = True, _id: Optional[str] = None):
         """
         Initializes a new Plot instance.
 
@@ -127,11 +127,11 @@ class Plot:
         :param files: List of file IDs the plot was based on
         :param created_time: Time and date of creating the image (saving to database)
         :param is_presented: Boolean value, if true then plot is presented in profile
-        :param user_id: ID of the user that the plot belongs to
+        :param business_id: ID of the business that the plot belongs to
         :param _id: Optional unique ID; if not provided, a UUID will be generated
         """
         self._id = _id or str(uuid.uuid4())
-        self.user_id = user_id
+        self.business_id = business_id
         self.image_name = image_name
         self.created_time = created_time or datetime.now(UTC)
         self.image = image
@@ -144,7 +144,7 @@ class Plot:
         """
         return {
             "_id": self._id,
-            "user_id": self.user_id,
+            "business_id": self.business_id,
             "image_name": self.image_name,
             "created_time": self.created_time,
             "image": self.image,
@@ -158,7 +158,7 @@ class Plot:
         A factory method that takes a MongoDB document (a dict) and returns a Plot instance with the same fields.
         """
         return cls(
-            user_id=data["user_id"],
+            business_id=data["business_id"],
             image_name=data["image_name"],
             image=data["image"],
             files=data.get("files", []),
@@ -178,7 +178,7 @@ class Business:
         self.email = email
         self.files = []
         self.presented_plot_order = []
-        self.editors = set()
+        self.editors = set([owner])
 
     def to_dict(self) -> Dict[str, Any]:
         return {

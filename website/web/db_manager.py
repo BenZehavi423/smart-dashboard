@@ -49,14 +49,14 @@ class MongoDBManager:
     def delete_file(self, file_id: str) -> bool:
         result = self.files.delete_one({"_id": file_id})
         return result.deleted_count > 0
-    
-    def get_files_for_user(self, user: User) -> List[File]:
+
+    def get_files_for_business(self, business: Business) -> List[File]:
         """
-        Returns a list of File objects uploaded by the given user.
-        :param user: User object
+        Returns a list of File objects uploaded by the given business.
+        :param business: Business object
         :return: List of File objects
         """
-        docs = self.files.find({"user_id": user._id})
+        docs = self.files.find({"business_id": business._id})
         return [File.from_dict(d) for d in docs]
 
     
@@ -147,11 +147,11 @@ class MongoDBManager:
         try:
             self.plots.insert_one(plot.to_dict())
             logger.info(f"Plot created successfully: {plot.image_name}", 
-                        extra_fields={'plot_id': plot._id, 'user_id': plot.user_id, 'plot_name': plot.image_name})
+                        extra_fields={'plot_id': plot._id, 'business_id': plot.business_id, 'plot_name': plot.image_name})
             return plot._id
         except Exception as e:
             logger.error(f"Failed to create plot: {plot.image_name}", 
-                         extra_fields={'user_id': plot.user_id, 'plot_name': plot.image_name, 'error': str(e)})
+                         extra_fields={'business_id': plot.business_id, 'plot_name': plot.image_name, 'error': str(e)})
             raise
     
     def get_plot(self, plot_id: str) -> Optional[Plot]:
@@ -171,15 +171,15 @@ class MongoDBManager:
         """
         result = self.plots.delete_one({"_id": plot_id})
         return result.deleted_count > 0
-    
-    def get_plots_for_user(self, user_id: str, only_presented: Optional[bool] = None) -> List[Plot]:
+
+    def get_plots_for_business(self, business_id: str, only_presented: Optional[bool] = None) -> List[Plot]:
         """
-        Returns a list of Plot objects belonging to the given user
-        :param user_id: ID of the user
+        Returns a list of Plot objects belonging to the given business
+        :param business_id: ID of the business
         :param only_presented: If True, return only presented images. If False, return only not presented images. If None, return all images.
         :return: List of Plot objects
         """
-        query: Dict[str, Any] = {"user_id": user_id}
+        query: Dict[str, Any] = {"business_id": business_id}
         if only_presented is not None:
             query["is_presented"] = only_presented
         
@@ -195,57 +195,57 @@ class MongoDBManager:
         """
         result = self.plots.update_one({"_id": plot_id}, {"$set": {"is_presented": is_presented}})
         return result.modified_count > 0
-    
-    def get_presented_plots_for_user_ordered(self, user_id: str) -> List[Plot]:
+
+    def get_presented_plots_for_business_ordered(self, business_name: str) -> List[Plot]:
         """
-        Returns presented plots for a user ordered according to user profile
-        :param user_id: ID of the user
+        Returns presented plots for a business ordered according to user profile
+        :param business_name: Name of the business
         :return: List of Plot objects in the correct order
         """
-        # Get user profile with plot order
-        profile = self.get_or_create_user_profile(user_id)
-        
+        # Get business with plot order
+        business = self.get_business_by_name(business_name)
+
         # Get all presented plots
-        presented_plots = self.get_plots_for_user(user_id, only_presented=True)
-        
+        presented_plots = self.get_plots_for_business(business._id, only_presented=True)
+
         # Create a dictionary for quick lookup
         plots_dict = {plot._id: plot for plot in presented_plots}
         
         # Order plots according to profile order
         ordered_plots = []
-        for plot_id in profile.presented_plot_order:
+        for plot_id in business.presented_plot_order:
             if plot_id in plots_dict:
                 ordered_plots.append(plots_dict[plot_id])
         
         # Add any plots that are presented but not in the order list (new plots)
         for plot in presented_plots:
-            if plot._id not in profile.presented_plot_order:
+            if plot._id not in business.presented_plot_order:
                 ordered_plots.append(plot)
         
         return ordered_plots
-    
-    def update_plot_presentation_order(self, user_id: str, plot_order: List[str]) -> bool:
+
+    def update_plot_presentation_order(self, business_name: str, plot_order: List[str]) -> bool:
         """
-        Updates the presentation order of plots for a user
-        :param user_id: ID of the user
+        Updates the presentation order of plots for a business
+        :param business_name: Name of the business
         :param plot_order: List of plot IDs in the desired order
         :return: True if update was successful
         """
         try:
-            logger.info(f"Updating plot presentation order for user: {user_id}", 
-                        extra_fields={'user_id': user_id, 'plot_order_length': len(plot_order)})
-            
-            result = self.update_business(user_id, {"presented_plot_order": plot_order})
-            
+            logger.info(f"Updating plot presentation order for business: {business_name}", 
+                        extra_fields={'business_name': business_name, 'plot_order_length': len(plot_order)})
+
+            result = self.update_business(business_name, {"presented_plot_order": plot_order})
+
             if result:
-                logger.info(f"Successfully updated plot presentation order for user: {user_id}")
+                logger.info(f"Successfully updated plot presentation order for business: {business_name}")
             else:
-                logger.error(f"Failed to update plot presentation order for user: {user_id}")
-            
+                logger.error(f"Failed to update plot presentation order for business: {business_name}")
+
             return result
         except Exception as e:
-            logger.error(f"Error updating plot presentation order for user: {user_id}", 
-                         extra_fields={'user_id': user_id, 'error': str(e)})
+            logger.error(f"Error updating plot presentation order for business: {business_name}", 
+                         extra_fields={'business_name': business_name, 'error': str(e)})
             return False
     
     def update_multiple_plots(self, plot_updates: List[Dict[str, Any]]) -> bool:
