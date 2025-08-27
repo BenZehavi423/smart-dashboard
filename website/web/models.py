@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, UTC
 from typing import List, Dict, Any, Optional
 import uuid
 
@@ -9,7 +9,7 @@ class File:
     def __init__(self, filename: str, upload_date: Optional[datetime] = None, user_id: Optional[str] = None, _id: Optional[str] = None, preview=None):
         self._id = _id or str(uuid.uuid4())
         self.filename = filename
-        self.upload_date = upload_date or datetime.utcnow()
+        self.upload_date = upload_date or datetime.now(UTC)
         self.user_id = user_id
         self.preview = preview or [] # Placeholder for file preview, if needed
 
@@ -60,7 +60,7 @@ class AnalysisResult:
         self._id = _id or str(uuid.uuid4())
         self.file_id = file_id
         self.stats = stats
-        self.created_at = created_at or datetime.utcnow()
+        self.created_at = created_at or datetime.now(UTC)
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -168,7 +168,7 @@ class Plot:
         self._id = _id or str(uuid.uuid4())
         self.user_id = user_id
         self.image_name = image_name
-        self.created_time = created_time or datetime.utcnow()
+        self.created_time = created_time or datetime.now(UTC)
         self.image = image
         self.files = files
         self.is_presented = is_presented
