@@ -4,7 +4,7 @@ Edit Plots
 {% endblock %}
 {% block content %}
 <h1>Edit Plots</h1>
-<a href="{{ url_for('views.business_page') }}" class="button">Back to Business Page</a>
+<a href="{{ url_for('views.business_page', business_name=business_name) }}" class="button">Back to Business Page</a>
 
 <div class="edit-plots-container">
     <!-- Step 1: Select Plots to Present -->
