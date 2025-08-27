@@ -5,10 +5,22 @@ Dashboard
 {% block content %}
 
 <!-- TODO: change to business name -->
-<h1 class="page-title">{{ user.username }}'s Profile Page</h1> 
+<h1 class="page-title">{{ business.name }}</h1> 
 
 <div class="dashboard-section">
-  <h2>My Plots</h2>
+  <h2>Details</h2>
+  <ul>
+    <li><strong>Name:</strong> {{ business.name }}</li>
+    {% if business.address %} <li><strong>Address:</strong> {{ business.address }}</li> {% endif %}
+    {% if business.phone %} <li><strong>Phone:</strong> {{ business.phone }}</li> {% endif %}
+    {% if business.email %} <li><strong>Email:</strong> {{ business.email }}</li> {% endif %}
+    <li><strong>Owner:</strong> {{ owner }}</li>
+  </ul>
+</div>
+
+
+<div class="dashboard-section">
+  <h2>Plots</h2>
   {% if plots %}
   <div class="plot-gallery">
     <div class="plot-container">
@@ -16,7 +28,9 @@ Dashboard
       <div class="plot-window">
         <div class="plot-header">
           <h3 id="currentPlotName">Plot Name</h3>
-          <button class="download-btn" onclick="downloadCurrentPlot()" title="Download Image">Download</button>
+          {% if can_edit %}
+            <button class="download-btn" onclick="downloadCurrentPlot()" title="Download Image">Download</button>
+          {% endif %}
         </div>
         <img id="currentPlot" src="" alt="Plot" style="max-width: 100%; height: auto;">
       </div>
@@ -31,25 +45,20 @@ Dashboard
     <p>No plots yet. Upload files to get started.</p>
   </div>
   {% endif %}
-  <div class="plot-actions">
-    <a href="{{ url_for('views.edit_plots') }}" class="button blue">Edit Plots</a>
-    <a href="{{ url_for('views.analyze_data') }}" class="button green">Analyze Data</a>
+  {% if can_edit %}
+    <div class="plot-actions">
+      <a href="{{ url_for('views.edit_plots', business_name=business_name) }}" class="button blue">Edit Plots</a>
+      <a href="{{ url_for('views.analyze_data', business_name=business_name) }}" class="button green">Analyze Data</a>
+    </div>
+  {% endif %}
+</div>
+
+{% if can_edit %}
+  <div class="dashboard-section">
+    <h2>Uploaded Files</h2>
+    <a href="{{ url_for('views.upload_files', business_name=business_name) }}" class="button blue">Upload New Files</a>
   </div>
-</div>
-
-<div class="dashboard-section">
-  <h2>Uploaded Files</h2>
-  <a href="{{ url_for('views.upload_files') }}" class="button blue">Upload New Files</a>
-</div>
-
-<div class="dashboard-section">
-  <h2>My Details</h2>
-  <ul>
-    <li><strong>Username:</strong> {{ user.username }}</li>
-    <li><strong>Email:</strong> {{ user.email }}</li>
-    <li><strong>Company:</strong> Coming soon</li>
-  </ul>
-</div>
+{% endif %}
 
 
 <link rel="stylesheet" href="{{ url_for('static', filename='plots.css') }}">
