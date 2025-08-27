@@ -2,20 +2,50 @@ import pytest
 import bcrypt
 import io
 from unittest.mock import patch, MagicMock
-from website.web.models import User, File
+from website.web.models import User, File, Business
 from website.web import create_app
 
 # ----- General Mocks -----
 @pytest.fixture
 def mock_db():
-    with patch('website.web.db_manager.MongoDBManager') as MockDB:
-        mock_db_instance = MockDB.return_value
-        yield mock_db_instance
+    """Mock database manager"""
+    mock = MagicMock()
+    
+    # Mock user methods
+    mock.get_user_by_username.return_value = None
+    mock.get_user_by_id.return_value = None
+    mock.create_user.return_value = "user_id"
+    
+    # Mock file methods
+    mock.create_file.return_value = "file_id"
+    mock.get_files_for_user.return_value = []
+    mock.get_files_for_business.return_value = []
+    
+    # Mock plot methods
+    mock.create_plot.return_value = "plot_id"
+    mock.get_plots_for_user.return_value = []
+    mock.get_plots_for_business.return_value = []
+    mock.get_presented_plots_for_business_ordered.return_value = []
+    mock.get_presented_plots_for_user_ordered.return_value = []
+    mock.update_multiple_plots.return_value = True
+    mock.update_plot_presentation_order.return_value = True
+    
+    # Mock business methods
+    mock.get_business_by_id.return_value = None
+    mock.get_business_by_name.return_value = None
+    mock.update_business.return_value = True
+    
+    # Mock user profile methods (for backward compatibility)
+    mock.get_or_create_user_profile.return_value = None
+    
+    return mock
 
 @pytest.fixture
 def test_user():
     hashed = bcrypt.hashpw("securepassword".encode(), bcrypt.gensalt()).decode()
-    return User(username="testuser", email="test@example.com", password_hash=hashed, phone="12345")
+    user = User(username="testuser", email="test@example.com", password_hash=hashed, phone="12345")
+    user._id = "testuser_id"  # Set specific ID to match mock_business editors
+    return user
 
 @pytest.fixture
 def app(mock_db):
@@ -29,6 +59,36 @@ def app(mock_db):
 def client(app):
     return app.test_client()
 
+@pytest.fixture
+def mock_business():
+    """Mock business object with all required attributes"""
+    business = Business(owner="owner123", name="Business 123")
+    business._id = "business123"
+    business.presented_plot_order = []
+    business.editors = ["testuser_id"]  # Add test user ID to editors
+    return business
+
+@pytest.fixture
+def registered_user(mock_db):
+    """Mock registered user data for login tests"""
+    password = 'securepassword'
+    hashed_pw = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
+    user = User(username='testuser', email='test@example.com', password_hash=hashed_pw)
+    mock_db.get_user_by_username.return_value = user
+    return {'username': user.username, 'password': password}
+
+@pytest.fixture
+def logged_in_user(client, mock_db):
+    """Helper fixture to create a logged-in user session"""
+    password = 'securepassword'
+    hashed_pw = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
+    user = User(username='testuser', email='test@example.com', password_hash=hashed_pw)
+    mock_db.get_user_by_username.return_value = user
+
+    with client.session_transaction() as sess:
+        sess['username'] = 'testuser'
+        
+    return {'username': user.username, 'password': password}
 
 # ----- File Mocks -----
 @pytest.fixture
@@ -58,7 +118,7 @@ def mock_empty_csv_file():
 
 @pytest.fixture
 def mock_processed_file():
-    return File(filename="test.csv", user_id="user123")
+    return File(business_id="business123", filename="test.csv")
 
 @pytest.fixture
 def mock_multiple_csv_files():
@@ -108,11 +168,12 @@ def sample_plots():
 @pytest.fixture
 def sample_business_page_with_order():
     from website.web.models import Business
-    return Business(
+    business = Business(
         owner="owner123",
-        name="Business 123",
-        presented_plot_order=["plot1", "plot3", "plot2"]
+        name="Business 123"
     )
+    business.presented_plot_order = ["plot1", "plot3", "plot2"]
+    return business
 
 @pytest.fixture
 def mock_plots_for_business(mock_db, sample_plots):

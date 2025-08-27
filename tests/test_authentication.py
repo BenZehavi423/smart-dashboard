@@ -3,15 +3,6 @@ from flask import session
 from website.web.models import User
 import bcrypt
 
-# This fixture creates a fake user and mocks the DB to return it
-@pytest.fixture
-def registered_user(client, mock_db):
-    password = 'securepassword'
-    hashed_pw = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
-    user = User(username='testuser', email='test@example.com', password_hash=hashed_pw)
-    mock_db.get_user_by_username.return_value = user
-    return {'username': user.username, 'password': password}
-
 # Test that /profile redirects to /login when not logged in
 def test_protected_page_requires_login(client):
     response = client.get('/profile', follow_redirects=False)
@@ -57,7 +48,7 @@ def test_session_persists_across_pages(client, mock_db, test_user):
     login_data = {'username': test_user.username, 'password': 'securepassword'}
     client.post('/login', data=login_data, follow_redirects=True)
 
-    for url in ['/profile', '/upload_files']:
+    for url in ['/profile', '/upload_files/test-business']:
         response = client.get(url)
 
         assert response.status_code == 200

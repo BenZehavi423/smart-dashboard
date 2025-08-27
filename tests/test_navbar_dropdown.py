@@ -3,15 +3,6 @@ from flask import session
 from website.web.models import User
 import bcrypt
 
-@pytest.fixture
-def logged_in_user(client, mock_db):
-    """Fixture to create a logged-in user session"""
-    password = 'securepassword'
-    hashed_pw = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
-    user = User(username='testuser', email='test@example.com', password_hash=hashed_pw)
-    mock_db.get_user_by_username.return_value = user
-    return {'username': user.username, 'password': password}
-
 def test_navbar_structure_when_logged_in(client, logged_in_user):
     """Test navbar structure when user is logged in"""
     client.post('/login', data=logged_in_user, follow_redirects=True)
