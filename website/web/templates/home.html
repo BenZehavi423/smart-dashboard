@@ -4,18 +4,18 @@ SmartDashboard
 {% endblock %}
 
 {% block content %}
-<div class="hero-section">
-  <div class="hero-text">
-    <h1>Welcome to SmartDashboard</h1>
-    <p>Upload. Visualize. Get Smart Insights.</p>
-    {% if not session.username %}
-      <a href="{{ url_for('auth.register') }}" class="button blue">Get Started</a>
-    {% else %}
-      <a href="{{ url_for('views.profile') }}" class="button blue">Go to Dashboard</a>
-    {% endif %}
+<div class="hero-section hero-split">
+  <div class="hero-image left">
+    <img src="{{ url_for('static', filename='images/logo.jpg') }}" alt="Logo">
   </div>
-  <div class="hero-image">
-    <img src="{{ url_for('static', filename='images/hero-data-viz.jpg') }}" alt="Data Visualization">
+  <div class="hero-text right">
+    <h1 class="tagline-line">Upload.</h1>
+    <h1 class="tagline-line">Visualize.</h1>
+    <h1 class="tagline-line">Get Smart Insights.</h1>
+    <div class="hero-actions">
+      <a href="{{ url_for('auth.login') }}" class="button blue">Log In</a>
+      <a href="{{ url_for('auth.register') }}" class="button blue">Sign Up</a>
+    </div>
   </div>
 </div>
 

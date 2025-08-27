@@ -15,6 +15,7 @@
     <div class="navbar-left">
       <img src="{{ url_for('static', filename='logo.jpg') }}" alt="Logo" class="logo">
     </div>
+    <div class="navbar-center">SmartDashboard</div>
     <div class="navbar-right">
       <a href="{{ url_for('views.home') }}">Home</a>
       {% if session.username %}
