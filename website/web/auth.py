@@ -88,7 +88,7 @@ def login():
 def logout():
      session.pop('username', None)
      flash('You have been logged out.', 'success')
-     return redirect(url_for('auth.login'))
+     return redirect(url_for('views.home'))
 
 
 
