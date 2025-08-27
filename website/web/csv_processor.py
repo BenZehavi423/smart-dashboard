@@ -10,7 +10,7 @@ def process_file(file):
 
 import pandas as pd
 from werkzeug.utils import secure_filename
-from datetime import datetime, UTC
+from datetime import datetime, timezone
 from .models import File
 
 def process_file(file, user_id):
@@ -29,7 +29,7 @@ def process_file(file, user_id):
     # Create File object with preview
     new_file = File(
         filename=filename,
-        upload_date=datetime.now(UTC),
+        upload_date=datetime.now(timezone.utc),
         user_id=user_id
     )
 

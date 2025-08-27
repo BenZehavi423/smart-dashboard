@@ -1,6 +1,6 @@
 from pymongo import MongoClient
 from typing import Optional, Dict, Any, List
-from .models import File, Dataset, AnalysisResult, User, Plot
+from .models import File, Dataset, AnalysisResult, User, Plot, Business
 from .logger import logger
 
 class MongoDBManager:
