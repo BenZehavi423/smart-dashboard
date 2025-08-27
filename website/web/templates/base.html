@@ -26,22 +26,56 @@
           </span>
           <span>Back to Home</span>
         </a>
+      {% elif session.username %}
+        {% set current_page_label = '' %}
+        {% if request.endpoint == 'views.profile' %}{% set current_page_label = 'My Profile' %}
+        {% elif request.endpoint == 'views.upload_files' %}{% set current_page_label = 'Upload Files' %}
+        {% elif request.endpoint == 'views.edit_plots' %}{% set current_page_label = 'Edit Plots' %}
+        {% elif request.endpoint == 'views.analyze_data' %}{% set current_page_label = 'Analyze Data' %}
+        {% elif request.endpoint == 'views.businesses_search' %}{% set current_page_label = 'Businesses Search' %}
+        {% elif request.endpoint == 'views.new_business' %}{% set current_page_label = 'New Business' %}
+        {% elif request.endpoint == 'views.help_center' %}{% set current_page_label = 'Help Center' %}
+        {% endif %}
+        <div class="dropdown" id="mainMenuDropdown">
+          <button class="dropbtn" id="menuToggleBtn" aria-label="Menu" aria-haspopup="true" aria-expanded="false">&#9776;</button>
+          <span class="nav-current">{{ current_page_label }}</span>
+          <div class="dropdown-content" role="menu">
+            <a href="{{ url_for('views.user_profile') }}">My Profile</a>
+            <a href="{{ url_for('views.businesses_search') }}">Businesses Search</a>
+            <a href="{{ url_for('views.new_business') }}">New Business</a>
+            <a href="{{ url_for('views.help_center') }}">Help Center</a>
+            <a href="{{ url_for('auth.logout') }}" class="button red">Log Out</a>
+          </div>
+        </div>
       {% endif %}
     </div>
     <div class="navbar-center">SmartDashboard</div>
-    <div class="navbar-right">
-      <a href="{{ url_for('views.home') }}">Home</a>
-      {% if session.username %}
-        <a href="{{ url_for('views.upload_files') }}">Upload</a>
-        <a href="{{ url_for('views.profile') }}">Profile</a>
-        <a href="{{ url_for('views.analyze_data') }}">Insights</a>
-        <a href="{{ url_for('auth.logout') }}" class="button red">Logout</a>
-      {% else %}
-        <a href="{{ url_for('auth.login') }}">Login</a>
-        <a href="{{ url_for('auth.register') }}">Register</a>
-      {% endif %}
-    </div>
   </nav>
+
+  <script>
+    (function() {
+      var dropdown = document.getElementById('mainMenuDropdown');
+      var toggleBtn = document.getElementById('menuToggleBtn');
+      if (!dropdown || !toggleBtn) return;
+
+      function closeMenu() {
+        dropdown.classList.remove('open');
+        toggleBtn.setAttribute('aria-expanded', 'false');
+      }
+
+      toggleBtn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        var isOpen = dropdown.classList.toggle('open');
+        toggleBtn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+      });
+
+      document.addEventListener('click', function(e) {
+        if (!dropdown.contains(e.target)) {
+          closeMenu();
+        }
+      });
+    })();
+  </script>
 
   <!-- Flash Messages -->
   {% with messages = get_flashed_messages(with_categories=true) %}

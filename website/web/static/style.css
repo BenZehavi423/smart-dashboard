@@ -223,10 +223,11 @@ h1 {
     font-size: 50px;
 }
 
-.navbar-right {
+.navbar-left {
     display: flex;
     align-items: center;
-    margin-left: 0; /* keep menu aligned to the left */
+    margin-left: 0;
+    height: 100%;
 }
 
 /* Back to Home button on auth pages */
@@ -248,8 +249,8 @@ h1 {
     display: block;
 }
 
-.navbar-right a {
-    margin-left: 20px;
+.navbar-left a {
+    margin-left: 10px;
     color: #333;
     font-weight: 500;
     text-decoration: none;
@@ -257,11 +258,11 @@ h1 {
     transition: color 0.2s ease;
 }
 
-.navbar-right a:hover {
+.navbar-left a:hover {
     color: #1769aa;
 }
 
-.navbar-right .button.red {
+.navbar-left .button.red {
     padding: 8px 16px;
     font-size: 14px;
     border-radius: 4px;
@@ -270,8 +271,89 @@ h1 {
     margin-left: 20px;
 }
 
-.navbar-right .button.red:hover {
+.navbar-left .button.red:hover {
     background-color: #d32f2f;
+}
+
+/* ===== Navbar Dropdown ===== */
+
+.navbar-left .dropdown {
+    position: relative;
+    display: flex;
+    align-items: center;
+    height: 100%;
+}
+
+.navbar-left .dropbtn {
+    background: transparent;
+    border: none;
+    color: #333;
+    font-weight: 500;
+    font-size: xx-large;
+    cursor: pointer;
+    padding: 0 10px;
+    display: flex;
+    align-items: center;
+    height: 100%;
+}
+
+.navbar-left .dropbtn:hover {
+    color: #1769aa;
+}
+
+.navbar-left .dropdown-content {
+    display: none;
+    position: absolute;
+    left: 0; /* align menu with button on the left */
+    margin-top: 8px;
+    background: #ffffff;
+    min-width: 220px;
+    border-radius: 8px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+    overflow: hidden;
+    z-index: 1100;
+}
+
+.navbar-left .dropdown-content a {
+    display: block;
+    padding: 10px 16px;
+    color: #333;
+    text-decoration: none;
+    font-size: 20px;
+}
+
+.navbar-left .dropdown-content a + a {
+    border-top: 1px solid #eef2ff;
+}
+
+.navbar-left .dropdown-content a:hover {
+    background: #f6f9ff;
+    color: #1769aa;
+}
+
+.navbar-left .dropdown.open .dropdown-content {
+    display: block;
+}
+
+.nav-current {
+    font-weight: 600;
+    font-size: 20px;
+    margin-left: 10px;
+}
+
+.navbar-left .dropdown-content .button.red {
+    background: transparent;
+    color: #e53935;
+    display: block;
+    border-radius: 0;
+    font-size: 20px;
+    width: auto;
+    text-align: left;
+    margin-left: 10px;
+}
+
+.navbar-left .dropdown-content .button.red:hover {
+    background: #fdecea;
 }
 
 /* ===== HOME PAGE (hero + features) ===== */
