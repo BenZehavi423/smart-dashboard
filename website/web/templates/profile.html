@@ -18,13 +18,17 @@ Dashboard
 <div class="dashboard-section">
   <h2>My Businesses</h2>
   <ul>
-    {% for business in businesses %}
-      <li>
-        <a href="/business_page/{{ business.name }}">
-          {{ business.name }}
-        </a>
-      </li>
-    {% endfor %}
+    {% if businesses %}
+      {% for business in businesses %}
+        <li>
+          <a href="/business_page/{{ business.name }}">
+            {{ business.name }}
+          </a>
+        </li>
+      {% endfor %}
+    {% else %}
+      <li>No businesses found. <a href="{{ url_for('views.new_business') }}" class="button green">Create a new business</a></li>
+    {% endif %}
   </ul>
 </div>
 
