@@ -4,15 +4,17 @@ from datetime import datetime
 from unittest.mock import patch, MagicMock
 from website.web.models import User, Plot, UserProfile
 
-# ----- Profile page tests -----
-def test_profile_page_displays_presented_plots(client, mock_db, test_user, mock_presented_plots_ordered):
-    """Test that profile page displays only presented plots"""
+# TODO: need to refer to specific business to check (throught all the file)
+
+# ----- Business page tests -----
+def test_business_page_displays_presented_plots(client, mock_db, test_user, mock_presented_plots_ordered):
+    """Test that business page displays only presented plots"""
     mock_db.get_user_by_username.return_value = test_user
     
     with client.session_transaction() as sess:
         sess['username'] = 'testuser'
     
-    response = client.get('/profile')
+    response = client.get('/business_page')
     assert response.status_code == 200
     
     # Check that presented plots are displayed
@@ -20,51 +22,39 @@ def test_profile_page_displays_presented_plots(client, mock_db, test_user, mock_
         assert plot.image_name.encode() in response.data
         assert plot._id.encode() in response.data
 
-# TODO: analyze_data
-def test_profile_page_analyze_data_button_present(client, mock_db, test_user, mock_presented_plots_ordered):
-    """Test that 'Analyze My Data' button is present on profile page"""
+def test_business_page_elements_present(client, mock_db, test_user, mock_presented_plots_ordered):
+    """Test that elements of business page are present"""
     mock_db.get_user_by_username.return_value = test_user
     
     with client.session_transaction() as sess:
         sess['username'] = 'testuser'
     
-    response = client.get('/profile')
+    response = client.get('/business_page')
     assert response.status_code == 200
-    assert b'Analyze My Data' in response.data
-
-def test_profile_page_edit_plots_button_present(client, mock_db, test_user, mock_presented_plots_ordered):
-    """Test that 'Edit Plots' button is present on profile page"""
-    mock_db.get_user_by_username.return_value = test_user
-    
-    with client.session_transaction() as sess:
-        sess['username'] = 'testuser'
-    
-    response = client.get('/profile')
-    assert response.status_code == 200
+    assert b'Analyze Data' in response.data
     assert b'Edit Plots' in response.data
 
-# TODO: analyze_data
-def test_profile_page_no_plots_shows_analyze_button(client, mock_db, test_user):
-    """Test that 'Analyze My Data' button is shown even when no plots exist"""
+def test_business_page_no_plots_shows_analyze_button(client, mock_db, test_user):
+    """Test that 'Analyze Data' button is shown even when no plots exist"""
     mock_db.get_user_by_username.return_value = test_user
     mock_db.get_presented_plots_for_user_ordered.return_value = []
     
     with client.session_transaction() as sess:
         sess['username'] = 'testuser'
     
-    response = client.get('/profile')
+    response = client.get('/business_page')
     assert response.status_code == 200
-    assert b'Analyze My Data' in response.data
+    assert b'Analyze Data' in response.data
     assert b'No presented plots. Upload files and generate plots to see them here.' in response.data
 
-def test_profile_page_plot_serialization(client, mock_db, test_user, mock_presented_plots_ordered):
+def test_business_page_plot_serialization(client, mock_db, test_user, mock_presented_plots_ordered):
     """Test that plots are properly serialized for JSON response"""
     mock_db.get_user_by_username.return_value = test_user
     
     with client.session_transaction() as sess:
         sess['username'] = 'testuser'
     
-    response = client.get('/profile')
+    response = client.get('/business_page')
     assert response.status_code == 200
     
     # Check that plot data is properly formatted (no base64 data in HTML)
@@ -109,7 +99,7 @@ def test_edit_plots_page_checkbox_states(client, mock_db, test_user, mock_plots_
     assert response.status_code == 200
     
     # Check that checkboxes are present and have the correct structure
-    assert b'Present in Profile' in response.data
+    assert b'Present in Business Page' in response.data
     assert b'type="checkbox"' in response.data
 
 def test_edit_plots_save_changes_success(client, mock_db, test_user):
@@ -228,7 +218,7 @@ def test_analyze_data_save_plots_success(client, mock_db, test_user):
             {
                 'image_name': 'New Analysis',
                 'image': 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==',
-                'save_to_profile': True
+                'save_to_business': True
             }
         ]
     }
@@ -256,7 +246,7 @@ def test_analyze_data_save_plots_failure(client, mock_db, test_user):
             {
                 'image_name': 'New Analysis',
                 'image': 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==',
-                'save_to_profile': True
+                'save_to_business': True
             }
         ]
     }
@@ -281,7 +271,7 @@ def test_get_presented_plots_ordered(mock_db, sample_user_profile_with_order):
     
     mock_db.get_plots_for_user.return_value = [plot1, plot2, plot3]
     
-    # The method should return plots in the order specified in user profile
+    # The method should return plots in the order specified in business page
     result = mock_db.get_presented_plots_for_user_ordered("user123")
     
     # No assert_called_once_with, just check result is a mock (since it's a mock)
@@ -339,7 +329,7 @@ def test_edit_plots_missing_data(client, mock_db, test_user):
 
 # ----- Integration tests -----
 def test_full_plot_workflow(client, mock_db, test_user):
-    """Test the full workflow: create plots, edit presentation, view in profile"""
+    """Test the full workflow: create plots, edit presentation, view in business page"""
     mock_db.get_user_by_username.return_value = test_user
     mock_db.get_or_create_user_profile.return_value = UserProfile(user_id="user123")
     mock_db.create_plot.return_value = "new_plot_id"
@@ -355,7 +345,7 @@ def test_full_plot_workflow(client, mock_db, test_user):
             {
                 'image_name': 'Workflow Test Plot',
                 'image': 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==',
-                'save_to_profile': True
+                'save_to_business': True
             }
         ]
     }
@@ -382,12 +372,12 @@ def test_full_plot_workflow(client, mock_db, test_user):
     edit_result = response.get_json()
     assert edit_result['success'] == True
     
-    # Step 3: View in profile (should show the plot)
+    # Step 3: View in business page (should show the plot)
     mock_db.get_presented_plots_for_user_ordered.return_value = [
         Plot(image_name="Workflow Test Plot", image="data", files=[], user_id="user123", _id="new_plot_id", is_presented=True)
     ]
     
-    response = client.get('/profile')
+    response = client.get('/business_page')
     assert response.status_code == 200
     assert b'Workflow Test Plot' in response.data 
 
@@ -418,10 +408,10 @@ def test_edit_plots_unsaved_changes_modal(client, mock_db, test_user, mock_plots
     assert response.status_code == 200
     # Check that the JS file is included and the back button is present
     assert b'edit_plots.js' in response.data
-    assert b'Back to Profile' in response.data
+    assert b'Back to Business Page' in response.data
 
 def test_edit_plots_success_redirect_with_parameter(client, mock_db, test_user):
-    """Test that successful save redirects to profile with success parameter"""
+    """Test that successful save redirects to business page with success parameter"""
     mock_db.get_user_by_username.return_value = test_user
     mock_db.update_multiple_plots.return_value = True
     mock_db.update_plot_presentation_order.return_value = True
@@ -444,14 +434,14 @@ def test_edit_plots_success_redirect_with_parameter(client, mock_db, test_user):
     result = response.get_json()
     assert result['success'] == True
 
-def test_profile_success_message_display(client, mock_db, test_user, mock_presented_plots_ordered):
+def test_business_page_success_message_display(client, mock_db, test_user, mock_presented_plots_ordered):
     """Test that success message is shown when redirected with success parameter"""
     mock_db.get_user_by_username.return_value = test_user
     
     with client.session_transaction() as sess:
         sess['username'] = 'testuser'
     
-    response = client.get('/profile?success=changes_saved')
+    response = client.get('/business_page?success=changes_saved')
     assert response.status_code == 200
     
     # Check that success message function is available
@@ -690,7 +680,7 @@ def test_full_edit_plots_workflow_with_modals(client, mock_db, test_user, mock_p
     result = response.get_json()
     assert result['success'] == True
     
-    # Step 3: Check that profile page can handle success parameter
-    response = client.get('/profile?success=changes_saved')
+    # Step 3: Check that business page can handle success parameter
+    response = client.get('/business_page?success=changes_saved')
     assert response.status_code == 200
     assert b'showTemporarySuccessMessage' in response.data 

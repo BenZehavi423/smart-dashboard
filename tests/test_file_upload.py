@@ -20,7 +20,7 @@ def test_upload_page_with_logged_in_user(client, mock_db, test_user):
     response = client.get('/upload_files')
     assert response.status_code == 200
     assert b'Choose Files to Upload' in response.data
-    assert b'Back to Profile' in response.data
+    assert b'Back to Business Page' in response.data
 
 def test_file_validation_csv_allowed(client, mock_db, test_user, mock_csv_file, mock_processed_file):
     """Test that CSV files are allowed for upload"""

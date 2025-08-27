@@ -212,7 +212,7 @@ def analyze_data(): # TODO: analyze_data
 
             saved_plot_ids = []
             for i, plot_data in enumerate(new_plots):
-                if plot_data.get('save_to_profile', False):
+                if plot_data.get('save_to_business', False):
                     # Create new Plot object
                     new_plot = Plot(
                         image_name=plot_data['image_name'],

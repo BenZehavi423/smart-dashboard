@@ -304,7 +304,7 @@ h1 {
 .navbar-left .dropdown-content {
     display: none;
     position: absolute;
-    left: 0; /* align menu with button on the left */
+    left: 0;
     margin-top: 8px;
     background: #ffffff;
     min-width: 220px;

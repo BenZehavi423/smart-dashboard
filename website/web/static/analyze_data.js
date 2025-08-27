@@ -148,7 +148,7 @@ function saveSelectedImages() {
         image_name: img.name,
         image: img.imageData,
         files: [], // Empty for now, will be populated when analysis is implemented
-        save_to_profile: true
+        save_to_business: true
     }));
     
     // Show loading state
@@ -170,9 +170,9 @@ function saveSelectedImages() {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            alert(`Successfully saved ${data.saved_count} image(s) to your profile!`);
-            // Redirect back to profile
-            window.location.href = '/profile';
+            alert(`Successfully saved ${data.saved_count} image(s) to your business page!`);
+            // Redirect back to business page
+            window.location.href = '/business_page';
         } else {
             alert('Error saving images. Please try again.');
         }

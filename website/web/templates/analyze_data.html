@@ -4,7 +4,7 @@ Analyze My Data
 {% endblock %}
 {% block content %}
 <h1>Analyze My Data</h1>
-<a href="{{ url_for('views.profile') }}" class="button">Back to Profile</a>
+<a href="{{ url_for('views.business_page') }}" class="button">Back to Business Page</a>
 
 <div class="analyze-container">
     <!-- Future: Text Analysis Request -->
@@ -19,7 +19,7 @@ Analyze My Data
     <!-- Current: Image Upload -->
     <div class="image-upload-section">
         <h2>Upload Images</h2>
-        <p>Upload one or more images to add them to your profile:</p>
+        <p>Upload one or more images to add them to your business page:</p>
         
         <div class="upload-area">
             <input type="file" id="imageUpload" multiple accept="image/*" style="display: none;">

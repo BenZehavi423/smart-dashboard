@@ -66,7 +66,6 @@ def test_session_persists_across_pages(client, mock_db, test_user):
         if url == '/profile':
             assert b"username:</strong> testuser" in response.data.lower()
 
-
 # Test that logged-in users who visit /login are redirected to /profile
 def test_login_redirects_if_already_logged_in(client, registered_user):
     client.post('/login', data=registered_user, follow_redirects=True)
@@ -96,3 +95,19 @@ def test_register_then_login_flow(client, mock_db):
     }, follow_redirects=True)
     assert b'Logged in successfully' in response.data
     assert b'newuser' in response.data.lower()
+
+def test_auth_page_ui_elements(client):
+    """Test that auth pages have the new UI elements"""
+    # Test login page
+    response = client.get('/login')
+    assert response.status_code == 200
+    assert b'Log In' in response.data
+    assert b"Don't have an account yet?" in response.data
+    assert b'Sign Up' in response.data
+    
+    # Test register page
+    response = client.get('/register')
+    assert response.status_code == 200
+    assert b'Sign Up' in response.data
+    assert b'Already have an account?' in response.data
+    assert b'Log In' in response.data
