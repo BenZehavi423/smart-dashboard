@@ -249,3 +249,19 @@ def analyze_data(): # TODO: analyze_data
                 extra_fields={'user_id': user._id, 'files_count': len(user_files)})
 
     return render_template('analyze_data.html', user=user, files=user_files)
+
+# ---- Simple placeholder pages to satisfy navbar links ----
+@views.route('/user_profile')
+@login_required
+def user_profile():
+    return render_template('generic_page.html', title='User Profile', content='Coming soon'), 200
+
+@views.route('/businesses_search')
+@login_required
+def businesses_search():
+    return render_template('generic_page.html', title='Businesses Search', content='Coming soon'), 200
+
+@views.route('/new_business')
+@login_required
+def new_business():
+    return render_template('generic_page.html', title='New Business', content='Coming soon'), 200
