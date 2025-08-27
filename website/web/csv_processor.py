@@ -1,13 +1,11 @@
 from flask import current_app, session
 import pandas as pd
 from werkzeug.utils import secure_filename
-from datetime import datetime
+from datetime import datetime, timezone
 from .models import File
 from .logger import logger
 
-def process_file(file, user_id):
-    logger.info(f"Starting file processing for user_id={user_id}, filename={file.filename}")
-
+def process_file(file, business_id):
     # Secure the filename (removes special characters)
     filename = secure_filename(file.filename)
 
@@ -24,9 +22,9 @@ def process_file(file, user_id):
     logger.info(f"Preview created for file {filename} with {len(preview)} rows")
     # Create File object with preview
     new_file = File(
+        business_id=business_id,
         filename=filename,
-        upload_date=datetime.utcnow(),
-        user_id=user_id
+        upload_date=datetime.now(timezone.utc)
     )
 
     # Attach preview manually (not part of original constructor)

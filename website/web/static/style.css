@@ -206,25 +206,51 @@ h1 {
     justify-content: space-between;
     align-items: center;
     background: linear-gradient(to right, #e3f2fd, #bbdefb);
-    padding: 10px 30px;
+    padding: 5px 10px;
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
     position: sticky;
     top: 0;
     z-index: 1000;
+    height: 45px;
 }
 
-.navbar-left .logo {
-    height: 40px;
-    width: auto;
+.navbar-center {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    font-weight: 1000;
+    letter-spacing: 0.5px;
+    font-size: 50px;
 }
 
-.navbar-right {
+.navbar-left {
     display: flex;
     align-items: center;
+    margin-left: 0;
+    height: 100%;
 }
 
-.navbar-right a {
-    margin-left: 20px;
+/* Back to Home button on auth pages */
+.back-home {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    text-decoration: none;
+    color: black;
+    font-weight: 600;
+    font-size: 20px;
+}
+
+.back-home:hover { color: #0d47a1; }
+
+.back-home .icon-door svg {
+    width: 22px;
+    height: 22px;
+    display: block;
+}
+
+.navbar-left a {
+    margin-left: 10px;
     color: #333;
     font-weight: 500;
     text-decoration: none;
@@ -232,11 +258,11 @@ h1 {
     transition: color 0.2s ease;
 }
 
-.navbar-right a:hover {
+.navbar-left a:hover {
     color: #1769aa;
 }
 
-.navbar-right .button.red {
+.navbar-left .button.red {
     padding: 8px 16px;
     font-size: 14px;
     border-radius: 4px;
@@ -245,8 +271,110 @@ h1 {
     margin-left: 20px;
 }
 
-.navbar-right .button.red:hover {
+.navbar-left .button.red:hover {
     background-color: #d32f2f;
+}
+
+/* ===== Navbar Dropdown ===== */
+
+.navbar-left .dropdown {
+    position: relative;
+    display: flex;
+    align-items: center;
+    height: 100%;
+}
+
+/* Ensure dropdown stays within viewport */
+@media (max-width: 768px) {
+    .navbar-left .dropdown-content {
+        right: 0;
+        left: auto;
+        min-width: 200px;
+    }
+}
+
+/* Additional positioning fixes */
+.navbar-left .dropdown-content[style*="bottom"] {
+    margin-top: 0;
+    margin-bottom: 4px;
+}
+
+.navbar-left .dropdown-content[style*="right"] {
+    left: auto;
+}
+
+.navbar-left .dropbtn {
+    background: transparent;
+    border: none;
+    color: #333;
+    font-weight: 500;
+    font-size: xx-large;
+    cursor: pointer;
+    padding: 0 10px;
+    display: flex;
+    align-items: center;
+    height: 100%;
+}
+
+.navbar-left .dropbtn:hover {
+    color: #1769aa;
+}
+
+.navbar-left .dropdown-content {
+    display: none;
+    position: absolute;
+    left: 0;
+    top: 100%;
+    background: #ffffff;
+    min-width: 220px;
+    border-radius: 8px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+    overflow: hidden;
+    z-index: 1100;
+    margin-top: 4px;
+    transition: opacity 0.2s ease;
+}
+
+.navbar-left .dropdown-content a {
+    display: block;
+    padding: 10px 16px;
+    color: #333;
+    text-decoration: none;
+    font-size: 20px;
+}
+
+.navbar-left .dropdown-content a + a {
+    border-top: 1px solid #eef2ff;
+}
+
+.navbar-left .dropdown-content a:hover {
+    background: #f6f9ff;
+    color: #1769aa;
+}
+
+.navbar-left .dropdown.open .dropdown-content {
+    display: block;
+}
+
+.nav-current {
+    font-weight: 600;
+    font-size: 20px;
+    margin-left: 10px;
+}
+
+.navbar-left .dropdown-content .button.red {
+    background: transparent;
+    color: #e53935;
+    display: block;
+    border-radius: 0;
+    font-size: 20px;
+    width: auto;
+    text-align: left;
+    margin-left: 10px;
+}
+
+.navbar-left .dropdown-content .button.red:hover {
+    background: #fdecea;
 }
 
 /* ===== HOME PAGE (hero + features) ===== */
@@ -263,6 +391,26 @@ h1 {
     margin-bottom: 60px;
 }
 
+/* Split layout: image left, text right */
+.hero-section.hero-split .hero-text.right {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.tagline-line {
+    margin: 4px 0;
+    text-align: center;
+}
+
+.hero-actions {
+    margin-top: 16px;
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+}
+
 .hero-text {
     flex: 1;
     text-align: left;
@@ -274,13 +422,7 @@ h1 {
     color: #333;
 }
 
-.hero-text p {
-    font-size: 1.3rem;
-    color: #666;
-    margin-bottom: 30px;
-}
-
-.hero-text .button {
+.hero-actions .button {
     font-size: 18px;
     padding: 14px 32px;
 }
@@ -337,6 +479,104 @@ h1 {
 .feature p {
     font-size: 1rem;
     color: #666;
+}
+
+/* ===== AUTH PAGES ===== */
+.auth-page .auth-form {
+    max-width: 480px;
+    width: 100%;
+}
+
+/* Center auth page content */
+.auth-page {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.auth-page .form-row {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    margin-bottom: 18px;
+}
+
+.auth-page label {
+    font-size: 1.1rem;
+    color: #34495e;
+}
+
+.auth-page input[type="text"],
+.auth-page input[type="password"] {
+    padding: 14px 16px;
+    font-size: 20px !important;
+    line-height: 1.5;
+    border-radius: 6px;
+    border: 1px solid #cbd5e1;
+}
+
+.auth-page input::placeholder {
+    font-size: 18px !important;
+}
+
+.auth-page input[type="text"]:focus,
+.auth-page input[type="password"]:focus {
+    font-size: 20px !important;
+}
+
+.auth-page .auth-form input[type="text"],
+.auth-page .auth-form input[type="password"] {
+    font-size: 20px !important;
+}
+
+.auth-page button[type="submit"] {
+    width: 60%;
+    max-width: 320px;
+    display: block;
+    margin: 16px auto 0;
+    font-size: 1.15rem;
+}
+
+.auth-page button[type="submit"] {
+    width: 100%;
+    font-size: 1.1rem;
+    padding: 14px 24px;
+}
+
+.auth-switch {
+    margin-top: 16px;
+    text-align: center;
+}
+
+.auth-switch .button.blue {
+    margin: 0 0 0 8px;
+    padding: 10px 20px;
+    font-size: 1rem;
+}
+
+/* Flash messages on auth pages */
+.flash-list {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 12px 0;
+}
+
+.flash-item {
+    padding: 10px 12px;
+    border-radius: 6px;
+    margin-bottom: 8px;
+    font-size: 0.95rem;
+}
+
+.flash-item.success {
+    background: #e8f5e9;
+    color: #2e7d32;
+}
+
+.flash-item.error {
+    background: #ffebee;
+    color: #c62828;
 }
 
 /* ===== UPLOAD PAGE ===== */

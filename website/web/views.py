@@ -12,6 +12,9 @@ from .plot_generator import generate_plot_image
 # we don't have to put all routes in the "views.py" module
 views = Blueprint('views', __name__)
 
+def can_edit_business(user, business):
+    return user._id in business.editors
+
 # Define the routes for the views blueprint
 @views.route('/')
 def home():
@@ -26,31 +29,19 @@ def home():
 def profile():
     username = session.get('username')
     user = current_app.db.get_user_by_username(username)
-    # Get presented plots ordered by presentation_order
-    presented_plots = current_app.db.get_presented_plots_for_user_ordered(user._id)
+    businesses = current_app.db.get_businesses_for_owner(user._id)
 
-    # Convert plots to a format suitable for JSON serialization
-    plots_data = []
-    for plot in presented_plots:
-        plots_data.append({
-            '_id': plot._id,
-            'image_name': plot.image_name,
-            'image': plot.image,
-            'created_time': plot.created_time.isoformat() if plot.created_time else None,
-            'is_presented': plot.is_presented
-        })
+    logger.info(f"Profile page accessed by user: {username} with {len(businesses)} businesses",
+                extra_fields={'user_id': user._id, 'businesses_count': len(businesses)})
 
-    logger.info(f"Profile page accessed by user: {username} with {len(presented_plots)} presented plots",
-                extra_fields={'user_id': user._id, 'presented_plots_count': len(presented_plots)})
-
-    return render_template('profile.html', user=user, plots=plots_data), 200
+    return render_template('profile.html', user=user, businesses=businesses), 200
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() == 'csv'
 
-@views.route('/upload_files', methods=['GET', 'POST'])
+@views.route('/upload_files/<business_name>', methods=['GET', 'POST'])
 @login_required
-def upload_files():
+def upload_files(business_name):
     # Check if user is logged in
     # If not, redirect to login page
     if 'username' not in session:
@@ -96,7 +87,7 @@ def upload_files():
 
     #GET: render the upload page with current user's files
     user_files = current_app.db.get_files_for_user(user)
-    return render_template('upload_files.html', files=user_files)
+    return render_template('upload_files.html', files=user_files, business_name=business_name)
 
 @views.route('/ask_llm', methods=['POST'])
 @login_required
@@ -117,11 +108,12 @@ def ask_llm():
         # Log the error e
         return jsonify({'error': 'The LLM service is currently unavailable.'}), 503
 
-@views.route('/edit_plots', methods=['GET', 'POST'])
+@views.route('/edit_plots/<business_name>', methods=['GET', 'POST'])
 @login_required
-def edit_plots():
+def edit_plots(business_name):
     username = session.get('username')
     user = current_app.db.get_user_by_username(username)
+    business = current_app.db.get_business_by_name(business_name)
 
     logger.info(f"Edit plots page accessed by user: {username}",
                 extra_fields={'user_id': user._id, 'action': 'edit_plots_access'})
@@ -138,8 +130,8 @@ def edit_plots():
         # Update plot presentation status
         plot_success = current_app.db.update_multiple_plots(plot_updates)
 
-        # Update plot order in user profile
-        order_success = current_app.db.update_plot_presentation_order(user._id, plot_order)
+        # Update plot order in business page
+        order_success = current_app.db.update_plot_presentation_order(business._id, plot_order)
 
         success = plot_success and order_success
 
@@ -153,22 +145,22 @@ def edit_plots():
         return jsonify({'success': success})
 
     # GET: render the edit plots page
-    all_plots = current_app.db.get_plots_for_user(user._id)
+    all_plots = current_app.db.get_plots_for_business(business_name)
     presented_plots = [p for p in all_plots if p.is_presented]
 
-    # Get user profile to determine presented plot order
-    profile = current_app.db.get_or_create_user_profile(user._id)
+    # Get business to determine presented plot order
+    business = current_app.db.get_business_by_name(business_name)
 
-    # Sort presented plots according to profile order
+    # Sort presented plots according to business order
     plots_dict = {plot._id: plot for plot in presented_plots}
     ordered_presented_plots = []
-    for plot_id in profile.presented_plot_order:
+    for plot_id in business.presented_plot_order:
         if plot_id in plots_dict:
             ordered_presented_plots.append(plots_dict[plot_id])
 
     # Add any plots that are presented but not in the order list
     for plot in presented_plots:
-        if plot._id not in profile.presented_plot_order:
+        if plot._id not in business.presented_plot_order:
             ordered_presented_plots.append(plot)
 
     # Convert plots to a format suitable for JSON serialization
@@ -198,13 +190,15 @@ def edit_plots():
     return render_template('edit_plots.html',
                          user=user,
                          all_plots=all_plots_data,
-                         presented_plots=presented_plots_data)
+                         presented_plots=presented_plots_data,
+                         business_name=business_name)
 
-@views.route('/analyze_data', methods=['GET', 'POST'])
+@views.route('/analyze_data/<business_name>', methods=['GET', 'POST'])
 @login_required
-def analyze_data(): # TODO: analyze_data
+def analyze_data(business_name):
     username = session.get('username')
     user = current_app.db.get_user_by_username(username)
+    business = current_app.db.get_business_by_id(user._id)
 
     if request.method == 'POST':
         # This now handles the plot generation request from the new frontend
@@ -343,3 +337,41 @@ def create_dashboard():
         logger.error(f"Failed to create dashboard: {e}", extra_fields={'user_id': user._id, 'file_id': file_id})
         return jsonify({"success": False, "error": "An unexpected error occurred while creating the dashboard."}), 500
 
+
+@views.route('/business_page/<business_name>')
+@login_required
+def business_page(business_name):
+    username = session.get('username')
+    user = current_app.db.get_user_by_username(username)
+    business = current_app.db.get_business_by_name(business_name)
+    if not business:
+        return jsonify({'error': 'Business not found'}), 404
+    # Get presented plots ordered by presentation_order
+    presented_plots = current_app.db.get_presented_plots_for_business_ordered(business_name)
+
+    # Convert plots to a format suitable for JSON serialization
+    plots_data = []
+    for plot in presented_plots:
+        plots_data.append({
+            '_id': plot._id,
+            'image_name': plot.image_name,
+            'image': plot.image,
+            'created_time': plot.created_time.isoformat() if plot.created_time else None,
+            'is_presented': plot.is_presented
+        })
+
+    logger.info(f"Profile page accessed by user: {username} with {len(presented_plots)} presented plots",
+                extra_fields={'user_id': user._id, 'presented_plots_count': len(presented_plots)})
+
+    owner = current_app.db.get_user_by_id(business.owner)
+    return render_template('business_page.html', business=business, user=user, plots=plots_data, can_edit=can_edit_business(user, business), owner=owner.username), 200
+
+@views.route('/businesses_search')
+@login_required
+def businesses_search():
+    return render_template('generic_page.html', title='Businesses Search', content='Coming soon'), 200
+
+@views.route('/new_business')
+@login_required
+def new_business():
+    return render_template('generic_page.html', title='New Business', content='Coming soon'), 200

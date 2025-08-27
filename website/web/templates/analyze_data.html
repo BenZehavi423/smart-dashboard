@@ -4,7 +4,7 @@ Analyze My Data
 {% endblock %}
 {% block content %}
 <h1>Analyze My Data</h1>
-<a href="{{ url_for('views.profile') }}" class="button">Back to Profile</a>
+<a href="{{ url_for('views.business_page', business_name=business_name) }}" class="button">Back to Business Page</a>
 
 <div class="analyze-container">
     <div class="analysis-request-section">
