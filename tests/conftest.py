@@ -106,10 +106,11 @@ def sample_plots():
     ]
 
 @pytest.fixture
-def sample_user_profile_with_order():
-    from website.web.models import UserProfile
-    return UserProfile(
-        user_id="user123",
+def sample_business_page_with_order():
+    from website.web.models import Business
+    return Business(
+        owner="owner123",
+        name="Business 123",
         presented_plot_order=["plot1", "plot3", "plot2"]
     )
 

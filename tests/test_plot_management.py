@@ -2,9 +2,10 @@ import pytest
 import json
 from datetime import datetime
 from unittest.mock import patch, MagicMock
-from website.web.models import User, Plot, UserProfile
+from website.web.models import User, Plot
 
 # TODO: need to refer to specific business to check (throught all the file)
+# TODO: change everything from user profile to business
 
 # ----- Business page tests -----
 def test_business_page_displays_presented_plots(client, mock_db, test_user, mock_presented_plots_ordered):
@@ -260,10 +261,10 @@ def test_analyze_data_save_plots_failure(client, mock_db, test_user):
     assert result['success'] == False
 
 # ----- Database operation tests -----
-def test_get_presented_plots_ordered(mock_db, sample_user_profile_with_order):
+def test_get_presented_plots_ordered(mock_db, sample_business_page_with_order):
     """Test that presented plots are returned in correct order"""
-    mock_db.get_or_create_user_profile.return_value = sample_user_profile_with_order
-    
+    mock_db.get_business.return_value = sample_business_page_with_order
+
     # Mock the plots that would be returned
     plot1 = Plot(image_name="Plot 1", image="data1", files=[], user_id="user123", _id="plot1", is_presented=True)
     plot2 = Plot(image_name="Plot 2", image="data2", files=[], user_id="user123", _id="plot2", is_presented=True)
@@ -279,7 +280,7 @@ def test_get_presented_plots_ordered(mock_db, sample_user_profile_with_order):
 
 def test_update_plot_presentation_order(mock_db):
     """Test updating plot presentation order"""
-    mock_db.update_user_profile.return_value = True
+    mock_db.update_business.return_value = True
     mock_db.update_plot_presentation_order.return_value = True
     plot_order = ["plot1", "plot3", "plot2"]
     result = mock_db.update_plot_presentation_order("user123", plot_order)

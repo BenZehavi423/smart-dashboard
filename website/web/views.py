@@ -24,24 +24,12 @@ def home():
 def profile():
     username = session.get('username')
     user = current_app.db.get_user_by_username(username)
-    # Get presented plots ordered by presentation_order
-    presented_plots = current_app.db.get_presented_plots_for_user_ordered(user._id)
+    businesses = current_app.db.get_businesses_for_owner(user._id)
 
-    # Convert plots to a format suitable for JSON serialization
-    plots_data = []
-    for plot in presented_plots:
-        plots_data.append({
-            '_id': plot._id,
-            'image_name': plot.image_name,
-            'image': plot.image,
-            'created_time': plot.created_time.isoformat() if plot.created_time else None,
-            'is_presented': plot.is_presented
-        })
+    logger.info(f"Profile page accessed by user: {username} with {len(businesses)} businesses",
+                extra_fields={'user_id': user._id, 'businesses_count': len(businesses)})
 
-    logger.info(f"Profile page accessed by user: {username} with {len(presented_plots)} presented plots",
-                extra_fields={'user_id': user._id, 'presented_plots_count': len(presented_plots)})
-
-    return render_template('profile.html', user=user, plots=plots_data), 200
+    return render_template('profile.html', user=user, businesses=businesses), 200
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() == 'csv'

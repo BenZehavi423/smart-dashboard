@@ -116,41 +116,6 @@ class User:
         )
 
 
-class UserProfile:
-    def __init__(self, user_id: str, presented_plot_order: Optional[List[str]] = None, _id: Optional[str] = None):
-        """
-        Initializes a new UserProfile instance.
-
-        :param user_id: ID of the user this profile belongs to
-        :param presented_plot_order: List of plot IDs in the order they should be presented
-        :param _id: Optional unique ID; if not provided, a UUID will be generated
-        """
-        self._id = _id or str(uuid.uuid4())
-        self.user_id = user_id
-        self.presented_plot_order = presented_plot_order or []
-
-    def to_dict(self) -> Dict[str, Any]:
-        """
-        Converts the UserProfile object into a dictionary suitable for MongoDB insertion.
-        """
-        return {
-            "_id": self._id,
-            "user_id": self.user_id,
-            "presented_plot_order": self.presented_plot_order,
-        }
-
-    @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "UserProfile":
-        """
-        A factory method that takes a MongoDB document (a dict) and returns a UserProfile instance with the same fields.
-        """
-        return cls(
-            user_id=data["user_id"],
-            presented_plot_order=data.get("presented_plot_order", []),
-            _id=data.get("_id"),
-        )
-
-
 class Plot:
     def __init__(self, image_name: str, image: Any, files: List[str], created_time: Optional[datetime] = None,
                   is_presented: bool = True, user_id: Optional[str] = None, _id: Optional[str] = None):
@@ -199,5 +164,45 @@ class Plot:
             files=data.get("files", []),
             created_time=data.get("created_time"),
             is_presented=data.get("is_presented", True),
+            _id=data.get("_id"),
+        )
+
+
+class Business:
+    def __init__(self, owner: str, name: str, address: Optional[str] = None, phone: Optional[str] = None, email: Optional[str] = None, _id: Optional[str] = None):
+        self._id = _id or str(uuid.uuid4())
+        self.owner = owner
+        self.name = name
+        self.address = address
+        self.phone = phone
+        self.email = email
+        self.files = []
+        self.presented_plot_order = []
+        self.editors = set()
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "_id": self._id,
+            "owner": self.owner,
+            "name": self.name,
+            "address": self.address,
+            "phone": self.phone,
+            "email": self.email,
+            "files": self.files,
+            "presented_plot_order": self.presented_plot_order,
+            "editors": list(self.editors)
+        }
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "Business":
+        return cls(
+            owner=data["owner"],
+            name=data["name"],
+            address=data.get("address"),
+            phone=data.get("phone"),
+            email=data.get("email"),
+            files=data.get("files", []),
+            presented_plot_order=data.get("presented_plot_order", []),
+            editors=set(data.get("editors", [])),  # Convert list back to set
             _id=data.get("_id"),
         )

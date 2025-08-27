@@ -1,6 +1,6 @@
 from pymongo import MongoClient
 from typing import Optional, Dict, Any, List
-from .models import File, Dataset, AnalysisResult, User, UserProfile, Plot
+from .models import File, Dataset, AnalysisResult, User, Plot
 from .logger import logger
 
 class MongoDBManager:
@@ -13,8 +13,8 @@ class MongoDBManager:
         self.datasets = self.db["datasets"]
         self.analysis = self.db["analysis_results"]
         self.users = self.db["users"]
-        self.user_profiles = self.db["user_profiles"]
         self.plots = self.db["plots"]
+        self.businesses = self.db["businesses"]
 
 
 # ----- FILE OPERATIONS -----
@@ -137,47 +137,6 @@ class MongoDBManager:
         result = self.users.delete_one({"_id": user_id})
         return result.deleted_count > 0
 
-# ----- USER PROFILE OPERATIONS -----
-    def create_user_profile(self, profile: UserProfile) -> str:
-        """
-        Creates a new user profile
-        :param profile: UserProfile object to save
-        :return: profile id
-        """
-        self.user_profiles.insert_one(profile.to_dict())
-        return profile._id
-    
-    def get_user_profile(self, user_id: str) -> Optional[UserProfile]:
-        """
-        Gets the user profile for a specific user
-        :param user_id: ID of the user
-        :return: UserProfile object or None if not found
-        """
-        data = self.user_profiles.find_one({"user_id": user_id})
-        return UserProfile.from_dict(data) if data else None
-    
-    def get_or_create_user_profile(self, user_id: str) -> UserProfile:
-        """
-        Gets existing user profile or creates a new one if it doesn't exist
-        :param user_id: ID of the user
-        :return: UserProfile object
-        """
-        profile = self.get_user_profile(user_id)
-        if not profile:
-            profile = UserProfile(user_id=user_id)
-            self.create_user_profile(profile)
-        return profile
-    
-    def update_user_profile(self, user_id: str, updates: Dict[str, Any]) -> bool:
-        """
-        Updates the user profile
-        :param user_id: ID of the user
-        :param updates: Dictionary of fields to update
-        :return: True if at least one doc was modified, otherwise False
-        """
-        result = self.user_profiles.update_one({"user_id": user_id}, {"$set": updates})
-        return result.modified_count > 0
-
 # ----- PLOT OPERATIONS -----
     def create_plot(self, plot: Plot) -> str:
         """
@@ -276,7 +235,7 @@ class MongoDBManager:
             logger.info(f"Updating plot presentation order for user: {user_id}", 
                         extra_fields={'user_id': user_id, 'plot_order_length': len(plot_order)})
             
-            result = self.update_user_profile(user_id, {"presented_plot_order": plot_order})
+            result = self.update_business(user_id, {"presented_plot_order": plot_order})
             
             if result:
                 logger.info(f"Successfully updated plot presentation order for user: {user_id}")
@@ -313,3 +272,59 @@ class MongoDBManager:
             logger.error(f"Failed to update multiple plots", 
                          extra_fields={'updates_count': len(plot_updates), 'error': str(e)})
             return False
+
+# ----- BUSINESS OPERATIONS -----
+    def create_business(self, business: Business) -> str:
+        """
+        Creates a new business entry
+        :param business: Business object representing the business
+        :return: Business id
+        """
+        self.businesses.insert_one(business.to_dict())
+        return business._id
+
+    def get_business_by_id(self, business_id: str) -> Optional[Business]:
+        """
+        Retrieves a business by its ID
+        :param business_id: ID of the business
+        :return: Business object if found, None otherwise
+        """
+        data = self.businesses.find_one({"_id": business_id})
+        return Business.from_dict(data) if data else None
+
+    def get_business_by_name(self, business_name: str) -> Optional[Business]:
+        """
+        Retrieves a business by its name
+        :param business_name: Name of the business
+        :return: Business object if found, None otherwise
+        """
+        data = self.businesses.find_one({"name": business_name})
+        return Business.from_dict(data) if data else None
+
+    def update_business(self, business_id: str, updates: Dict[str, Any]) -> bool:
+        """
+        Updates a business entry
+        :param business_id: ID of the business to update
+        :param updates: Dictionary of fields to update
+        :return: True if at least one doc was modified, otherwise False
+        """
+        result = self.businesses.update_one({"_id": business_id}, {"$set": updates})
+        return result.modified_count > 0
+
+    def delete_business(self, business_id: str) -> bool:
+        """
+        Deletes a business entry
+        :param business_id: ID of the business to delete
+        :return: True if at least one doc was deleted, otherwise False
+        """
+        result = self.businesses.delete_one({"_id": business_id})
+        return result.deleted_count > 0
+
+    def get_businesses_for_owner(self, owner_id: str) -> List[Business]:
+        """
+        Retrieves all businesses owned by a specific user
+        :param owner_id: ID of the owner
+        :return: List of Business objects
+        """
+        businesses = self.businesses.find({"owner": owner_id})
+        return [Business.from_dict(d) for d in businesses]
