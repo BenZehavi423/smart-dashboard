@@ -10,10 +10,10 @@ def process_file(file):
 
 import pandas as pd
 from werkzeug.utils import secure_filename
-from datetime import datetime
+from datetime import datetime, timezone
 from .models import File
 
-def process_file(file, user_id):
+def process_file(file, business_id):
     # Secure the filename (removes special characters)
     filename = secure_filename(file.filename)
 
@@ -28,9 +28,9 @@ def process_file(file, user_id):
 
     # Create File object with preview
     new_file = File(
+        business_id=business_id,
         filename=filename,
-        upload_date=datetime.utcnow(),
-        user_id=user_id
+        upload_date=datetime.now(timezone.utc)
     )
 
     # Attach preview manually (not part of original constructor)

@@ -4,13 +4,13 @@ Edit Plots
 {% endblock %}
 {% block content %}
 <h1>Edit Plots</h1>
-<a href="{{ url_for('views.profile') }}" class="button">Back to Profile</a>
+<a href="{{ url_for('views.business_page', business_name=business_name) }}" class="button">Back to Business Page</a>
 
 <div class="edit-plots-container">
     <!-- Step 1: Select Plots to Present -->
     <div class="step-section" id="step1">
         <h2>Step 1: Select Plots to Present</h2>
-        <p>Choose which plots you want to display in your profile:</p>
+        <p>Choose which plots you want to display in your business page:</p>
         
         <div class="plots-grid">
             {% for plot in all_plots %}
@@ -19,7 +19,7 @@ Edit Plots
                     <input type="checkbox" id="plot_{{ plot._id }}" 
                            {% if plot.is_presented %}checked{% endif %}
                            onchange="togglePlotSelection('{{ plot._id }}', this.checked)">
-                    <label for="plot_{{ plot._id }}">Present in Profile</label>
+                    <label for="plot_{{ plot._id }}">Present in Business Page</label>
                 </div>
                 <div class="plot-image">
                     <img src="{{ plot.image }}" alt="{{ plot.image_name }}" style="max-width: 150px; height: auto;">

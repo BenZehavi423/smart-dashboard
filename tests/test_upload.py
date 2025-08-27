@@ -8,14 +8,14 @@ def test_upload_valid_csv(client, mock_db, test_user, mock_csv_file):
     mock_db.get_user_by_username.return_value = test_user
 
     # Use the filename from the tuple (index 1)   
-    mock_db.get_files_for_user.return_value = [File(filename=mock_csv_file[1])]
+    mock_db.get_files_for_user.return_value = [File(business_id="business123", filename=mock_csv_file[1])]
 
     # Simulate logged-in session
     with client.session_transaction() as sess:
         sess['username'] = test_user.username
 
     data = {'file': [mock_csv_file]}
-    response = client.post('/upload_files', content_type='multipart/form-data', data=data)
+    response = client.post('/upload_files/test-business', content_type='multipart/form-data', data=data)
 
     # Ensure success in response
     assert response.status_code == 200
@@ -31,7 +31,7 @@ def test_upload_invalid_file_type(client, mock_db, test_user, mock_txt_file):
         sess['username'] = test_user.username
 
     data = {'file': [mock_txt_file]}
-    response = client.post('/upload_files', content_type='multipart/form-data', data=data)
+    response = client.post('/upload_files/test-business', content_type='multipart/form-data', data=data)
 
     # Ensure failure in response
     assert response.status_code == 200
@@ -47,7 +47,7 @@ def test_upload_mixed_files(client, mock_db, test_user, mock_mixed_files):
         sess['username'] = test_user.username
 
     data = {'file': mock_mixed_files}
-    response = client.post('/upload_files', content_type='multipart/form-data', data=data)
+    response = client.post('/upload_files/test-business', content_type='multipart/form-data', data=data)
 
     # One file should succeed, one should fail
     assert response.status_code == 200
