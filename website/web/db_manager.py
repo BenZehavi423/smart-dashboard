@@ -127,6 +127,16 @@ class MongoDBManager:
         """
         data = self.users.find_one({"username": username})
         return User.from_dict(data) if data else None
+
+    def update_user(self, user_id: str, updates: Dict[str, Any]) -> bool:
+        """
+        updates the user in the collection
+        :param user_id:
+        :param updates:
+        :return: True if at least one doc was modified, otherwise False
+        """
+        result = self.users.update_one({"_id": user_id}, {"$set": updates})
+        return result.modified_count > 0
     
     def delete_user(self, user_id: str) -> bool:
         """

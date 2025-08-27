@@ -27,11 +27,10 @@ def register():
     if request.method == 'POST':
         #read form data
         username = request.form.get('username')
-        email = request.form.get('email')
         password = request.form.get('password')
         
         #check if any fileds are empty
-        if not username or not email or not password:
+        if not username or not password:
             flash('All fields are required!', 'error')
             return redirect(url_for('auth.register'))
         
@@ -45,7 +44,7 @@ def register():
         hashed_pw = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
 
         #create a new user object
-        user = User(username=username, email=email, password_hash=hashed_pw)
+        user = User(username=username, password_hash=hashed_pw)
 
         #save the user to the database
         current_app.db.create_user(user)

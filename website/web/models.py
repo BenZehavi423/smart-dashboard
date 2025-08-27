@@ -81,7 +81,7 @@ class AnalysisResult:
     
 
 class User:
-    def __init__(self, username: str, email: str, password_hash: str, phone: Optional[str] = None, _id: Optional[str] = None):
+    def __init__(self, username: str, password_hash: str, email: Optional[str] = None, phone: Optional[str] = None, _id: Optional[str] = None):
         """
         Initializes a new User instance.
 
