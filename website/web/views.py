@@ -115,8 +115,8 @@ def edit_plots():
         # Update plot presentation status
         plot_success = current_app.db.update_multiple_plots(plot_updates)
 
-        # Update plot order in user profile
-        order_success = current_app.db.update_plot_presentation_order(user._id, plot_order)
+        # Update plot order in business page
+        order_success = current_app.db.update_plot_presentation_order(business._id, plot_order)
 
         success = plot_success and order_success
 
@@ -179,7 +179,7 @@ def edit_plots():
 
 @views.route('/analyze_data', methods=['GET', 'POST'])
 @login_required
-def analyze_data(): # TODO: analyze_data
+def analyze_data():
     username = session.get('username')
     user = current_app.db.get_user_by_username(username)
 
@@ -218,7 +218,7 @@ def analyze_data(): # TODO: analyze_data
                     profile.presented_plot_order.append(plot_id)
             # Update user profile with new order
             if saved_plot_ids:
-                current_app.db.update_user_profile(user._id, {
+                current_app.db.update_business(user._id, {
                     "presented_plot_order": profile.presented_plot_order
                 })
                 logger.info(f"User profile updated with {len(saved_plot_ids)} new plots",
@@ -238,11 +238,30 @@ def analyze_data(): # TODO: analyze_data
 
     return render_template('analyze_data.html', user=user, files=user_files)
 
-# ---- Simple placeholder pages to satisfy navbar links ----
-@views.route('/user_profile')
+@views.route('/business_page/<business_name>')
 @login_required
-def user_profile():
-    return render_template('generic_page.html', title='User Profile', content='Coming soon'), 200
+def business_page(business_name):
+    username = session.get('username')
+    user = current_app.db.get_user_by_username(username)
+    # Get presented plots ordered by presentation_order
+    presented_plots = current_app.db.get_presented_plots_for_business_ordered(business_name)
+
+    # Convert plots to a format suitable for JSON serialization
+    plots_data = []
+    for plot in presented_plots:
+        plots_data.append({
+            '_id': plot._id,
+            'image_name': plot.image_name,
+            'image': plot.image,
+            'created_time': plot.created_time.isoformat() if plot.created_time else None,
+            'is_presented': plot.is_presented
+        })
+
+    logger.info(f"Profile page accessed by user: {username} with {len(presented_plots)} presented plots",
+                extra_fields={'user_id': user._id, 'presented_plots_count': len(presented_plots)})
+
+    return render_template('profile.html', user=user, plots=plots_data), 200
+    return render_template('business_page.html'), 200   # TODO: render also- plots_data, editing priviliges (T\F), business's details
 
 @views.route('/businesses_search')
 @login_required
