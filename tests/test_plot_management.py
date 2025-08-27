@@ -72,7 +72,7 @@ def test_edit_plots_page_requires_login(client):
     location = response.headers.get('Location', '')
     assert 'login' in location.lower()
 
-def test_edit_plots_page_displays_all_plots(client, mock_db, test_user, mock_plots_for_user):
+def test_edit_plots_page_displays_all_plots(client, mock_db, test_user, mock_plots_for_business):
     """Test that edit plots page displays all plots (presented and not presented)"""
     mock_db.get_user_by_username.return_value = test_user
     mock_db.get_or_create_user_profile.return_value = UserProfile(user_id="user123")
@@ -84,11 +84,11 @@ def test_edit_plots_page_displays_all_plots(client, mock_db, test_user, mock_plo
     assert response.status_code == 200
     
     # Check that all plots are displayed
-    for plot in mock_plots_for_user:
+    for plot in mock_plots_for_business:
         assert plot.image_name.encode() in response.data
         assert plot._id.encode() in response.data
 
-def test_edit_plots_page_checkbox_states(client, mock_db, test_user, mock_plots_for_user):
+def test_edit_plots_page_checkbox_states(client, mock_db, test_user, mock_plots_for_business):
     """Test that checkboxes reflect the presented status of plots"""
     mock_db.get_user_by_username.return_value = test_user
     mock_db.get_or_create_user_profile.return_value = UserProfile(user_id="user123")
@@ -152,7 +152,7 @@ def test_edit_plots_save_changes_failure(client, mock_db, test_user):
     result = response.get_json()
     assert result['success'] == False
 
-def test_edit_plots_page_sorting_buttons(client, mock_db, test_user, mock_plots_for_user):
+def test_edit_plots_page_sorting_buttons(client, mock_db, test_user, mock_plots_for_business):
     """Test that sorting buttons are present on edit plots page"""
     mock_db.get_user_by_username.return_value = test_user
     mock_db.get_or_create_user_profile.return_value = UserProfile(user_id="user123")
@@ -169,7 +169,7 @@ def test_edit_plots_page_sorting_buttons(client, mock_db, test_user, mock_plots_
     assert b'A \xe2\x86\x92 Z' in response.data
     assert b'Z \xe2\x86\x92 A' in response.data
 
-def test_edit_plots_page_drag_drop_functionality(client, mock_db, test_user, mock_plots_for_user):
+def test_edit_plots_page_drag_drop_functionality(client, mock_db, test_user, mock_plots_for_business):
     """Test that drag and drop functionality is present"""
     mock_db.get_user_by_username.return_value = test_user
     mock_db.get_or_create_user_profile.return_value = UserProfile(user_id="user123")
@@ -383,7 +383,7 @@ def test_full_plot_workflow(client, mock_db, test_user):
     assert b'Workflow Test Plot' in response.data 
 
 # ----- Modal functionality tests -----
-def test_edit_plots_no_changes_modal(client, mock_db, test_user, mock_plots_for_user):
+def test_edit_plots_no_changes_modal(client, mock_db, test_user, mock_plots_for_business):
     """Test that no changes modal is available (script and button present)"""
     mock_db.get_user_by_username.return_value = test_user
     mock_db.get_or_create_user_profile.return_value = UserProfile(user_id="user123")
@@ -397,7 +397,7 @@ def test_edit_plots_no_changes_modal(client, mock_db, test_user, mock_plots_for_
     assert b'edit_plots.js' in response.data
     assert b'Save All Changes' in response.data
 
-def test_edit_plots_unsaved_changes_modal(client, mock_db, test_user, mock_plots_for_user):
+def test_edit_plots_unsaved_changes_modal(client, mock_db, test_user, mock_plots_for_business):
     """Test that unsaved changes modal is available (script and back button present)"""
     mock_db.get_user_by_username.return_value = test_user
     mock_db.get_or_create_user_profile.return_value = UserProfile(user_id="user123")
@@ -449,7 +449,7 @@ def test_business_page_success_message_display(client, mock_db, test_user, mock_
     assert b'showTemporarySuccessMessage' in response.data
     assert b'changes_saved' in response.data
 
-def test_edit_plots_custom_modal_system(client, mock_db, test_user, mock_plots_for_user):
+def test_edit_plots_custom_modal_system(client, mock_db, test_user, mock_plots_for_business):
     """Test that custom modal system is properly implemented (script present)"""
     mock_db.get_user_by_username.return_value = test_user
     mock_db.get_or_create_user_profile.return_value = UserProfile(user_id="user123")
@@ -532,7 +532,7 @@ def test_edit_plots_save_changes_failure_with_logging(client, mock_db, test_user
     result = response.get_json()
     assert result['success'] == False
 
-def test_edit_plots_page_access_logging(client, mock_db, test_user, mock_plots_for_user):
+def test_edit_plots_page_access_logging(client, mock_db, test_user, mock_plots_for_business):
     """Test that edit plots page access is properly logged"""
     mock_db.get_user_by_username.return_value = test_user
     mock_db.get_or_create_user_profile.return_value = UserProfile(user_id="user123")
@@ -550,14 +550,14 @@ def test_edit_plots_page_access_logging(client, mock_db, test_user, mock_plots_f
             extra_fields={'user_id': test_user._id, 'action': 'edit_plots_access'}
         )
         mock_logger.info.assert_any_call(
-            f"Edit plots page rendered for user testuser: {len(mock_plots_for_user)} total plots, {len([p for p in mock_plots_for_user if p.is_presented])} presented",
-            extra_fields={'user_id': test_user._id, 'total_plots': len(mock_plots_for_user), 'presented_plots': len([p for p in mock_plots_for_user if p.is_presented])}
+            f"Edit plots page rendered for user testuser: {len(mock_plots_for_business)} total plots, {len([p for p in mock_plots_for_business if p.is_presented])} presented",
+            extra_fields={'user_id': test_user._id, 'total_plots': len(mock_plots_for_business), 'presented_plots': len([p for p in mock_plots_for_business if p.is_presented])}
         )
     
     assert response.status_code == 200
 
 # ----- JavaScript functionality tests -----
-def test_edit_plots_javascript_functions(client, mock_db, test_user, mock_plots_for_user):
+def test_edit_plots_javascript_functions(client, mock_db, test_user, mock_plots_for_business):
     """Test that all required JavaScript functions are present (script present)"""
     mock_db.get_user_by_username.return_value = test_user
     mock_db.get_or_create_user_profile.return_value = UserProfile(user_id="user123")
@@ -570,7 +570,7 @@ def test_edit_plots_javascript_functions(client, mock_db, test_user, mock_plots_
     # Check for the JS file
     assert b'edit_plots.js' in response.data
 
-def test_edit_plots_drag_drop_javascript(client, mock_db, test_user, mock_plots_for_user):
+def test_edit_plots_drag_drop_javascript(client, mock_db, test_user, mock_plots_for_business):
     """Test that drag and drop JavaScript functions are present (script present)"""
     mock_db.get_user_by_username.return_value = test_user
     mock_db.get_or_create_user_profile.return_value = UserProfile(user_id="user123")
@@ -583,7 +583,7 @@ def test_edit_plots_drag_drop_javascript(client, mock_db, test_user, mock_plots_
     # Check for the JS file
     assert b'edit_plots.js' in response.data
 
-def test_edit_plots_sorting_javascript(client, mock_db, test_user, mock_plots_for_user):
+def test_edit_plots_sorting_javascript(client, mock_db, test_user, mock_plots_for_business):
     """Test that sorting JavaScript functions are present"""
     mock_db.get_user_by_username.return_value = test_user
     mock_db.get_or_create_user_profile.return_value = UserProfile(user_id="user123")
@@ -650,7 +650,7 @@ def test_edit_plots_no_plots_selected_confirmation(client, mock_db, test_user):
     assert result['success'] == True
 
 # ----- Integration tests -----
-def test_full_edit_plots_workflow_with_modals(client, mock_db, test_user, mock_plots_for_user):
+def test_full_edit_plots_workflow_with_modals(client, mock_db, test_user, mock_plots_for_business):
     """Test the complete edit plots workflow including modal interactions"""
     mock_db.get_user_by_username.return_value = test_user
     mock_db.get_or_create_user_profile.return_value = UserProfile(user_id="user123")

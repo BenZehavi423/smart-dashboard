@@ -15,7 +15,7 @@ def mock_db():
 @pytest.fixture
 def test_user():
     hashed = bcrypt.hashpw("securepassword".encode(), bcrypt.gensalt()).decode()
-    return User(username="testuser", email="test@example.com", password_hash=hashed)
+    return User(username="testuser", email="test@example.com", password_hash=hashed, phone="12345")
 
 @pytest.fixture
 def app(mock_db):
@@ -115,7 +115,7 @@ def sample_business_page_with_order():
     )
 
 @pytest.fixture
-def mock_plots_for_user(mock_db, sample_plots):
+def mock_plots_for_business(mock_db, sample_plots):
     from website.web.models import Plot
     from datetime import datetime
     
@@ -127,12 +127,12 @@ def mock_plots_for_user(mock_db, sample_plots):
             files=[],
             created_time=datetime.fromisoformat(plot_data['created_time']),
             is_presented=plot_data['is_presented'],
-            user_id="user123",
+            business_id="business123",
             _id=plot_data['_id']
         )
         plots.append(plot)
     
-    mock_db.get_plots_for_user.return_value = plots
+    mock_db.get_plots_for_business.return_value = plots
     return plots
 
 @pytest.fixture
@@ -149,10 +149,10 @@ def mock_presented_plots_ordered(mock_db, sample_plots):
                 files=[],
                 created_time=datetime.fromisoformat(plot_data['created_time']),
                 is_presented=plot_data['is_presented'],
-                user_id="user123",
+                business_id="business123",
                 _id=plot_data['_id']
             )
             presented_plots.append(plot)
     
-    mock_db.get_presented_plots_for_user_ordered.return_value = presented_plots
+    mock_db.get_presented_plots_for_business_ordered.return_value = presented_plots
     return presented_plots 
