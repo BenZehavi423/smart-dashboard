@@ -165,24 +165,35 @@
     errBox.style.display = 'none';
     errBox.textContent = '';
 
-    /* If CSRF is enabled, add the token header here */
-    const resp = await fetch('{{ url_for("views.create_dashboard") }}', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'same-origin',
-      body: JSON.stringify({ file_id: fileId })
-    });
+    // Disable button to prevent multiple clicks
+    const originalButtonText = confirmBtn.textContent;
+    confirmBtn.disabled = true;
+    confirmBtn.textContent = 'Creating...';
 
-    const data = await resp.json().catch(() => ({}));
-    if (!resp.ok || !data.success) {
-      const msg = (data && data.error) ? data.error : 'Failed to create the dashboard. Please try again later.';
-      errBox.textContent = msg;
-      errBox.style.display = 'block';
-      return;
+    try {
+        /* If CSRF is enabled, add the token header here */
+        const resp = await fetch('{{ url_for("views.create_dashboard") }}', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
+          body: JSON.stringify({ file_id: fileId })
+        });
+
+        const data = await resp.json().catch(() => ({}));
+        if (!resp.ok || !data.success) {
+          const msg = (data && data.error) ? data.error : 'Failed to create the dashboard. Please try again later.';
+          errBox.textContent = msg;
+          errBox.style.display = 'block';
+          return;
+        }
+
+        const target = data.redirect || '{{ url_for("views.dashboard") }}';
+        window.location.href = target;
+    } finally {
+        // Re-enable the button and restore its text
+        confirmBtn.disabled = false;
+        confirmBtn.textContent = originalButtonText;
     }
-
-    const target = data.redirect || '{{ url_for("views.dashboard") }}';
-    window.location.href = target;
   }
 
   if (btnOpen) btnOpen.addEventListener('click', handleOpen);
