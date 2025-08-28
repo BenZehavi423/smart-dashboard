@@ -2,6 +2,11 @@
 {% block title %}
 Dashboard
 {% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='profile.css') }}">
+{% endblock %}
+
 {% block content %}
 
 <h1 class="page-title">{{ user.username }}'s Profile Page</h1>
@@ -27,7 +32,9 @@ Dashboard
         </li>
       {% endfor %}
     {% else %}
-      <li>No businesses found. <a href="{{ url_for('views.new_business') }}" class="button green">Create a new business</a></li>
+      <li>No businesses found. Create your first business to get started!
+        <a href="{{ url_for('views.new_business') }}" class="button green">Create New Business</a>
+      </li>
     {% endif %}
   </ul>
 </div>

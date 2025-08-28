@@ -2,7 +2,7 @@ from flask import Blueprint, render_template, request, jsonify, current_app, ses
 import os
 from .auth import login_required
 from .csv_processor import process_file
-from .models import Plot
+from .models import Plot, Business
 from .logger import logger
 import requests
 from .llm_client import generate_insights_for_file
@@ -21,7 +21,6 @@ def home():
     # Return a simple HTML response for the home page
     # 200 is the "OK" HTTP status code
 
-    #files = list(current_app.db.db.files.find({})) add later
     return render_template('home.html'), 200
 
 @views.route('/profile')
@@ -349,12 +348,28 @@ def create_dashboard():
 def business_page(business_name):
     username = session.get('username')
     user = current_app.db.get_user_by_username(username)
+    
+    # Get business by name
     business = current_app.db.get_business_by_name(business_name)
     if not business:
-        return jsonify({'error': 'Business not found'}), 404
-    # Get presented plots ordered by presentation_order
-    presented_plots = current_app.db.get_presented_plots_for_business_ordered(business_name)
+        return render_template('error.html', error='Business not found'), 404
+    
+    # Get owner information
+    owner = current_app.db.get_user_by_id(business.owner)
+    owner_name = owner.username if owner else 'Unknown User'
 
+    # Get files for this business
+    files = current_app.db.get_files_for_business(business)
+    files_data = []
+    for file in files:
+        files_data.append({
+            '_id': file._id,
+            'filename': file.filename,
+            'upload_date': file.upload_date.isoformat() if file.upload_date else None,
+        })
+
+    # Get presented plots for this business
+    presented_plots = current_app.db.get_presented_plots_for_business_ordered(business_name)
     # Convert plots to a format suitable for JSON serialization
     plots_data = []
     for plot in presented_plots:
@@ -365,19 +380,167 @@ def business_page(business_name):
             'created_time': plot.created_time.isoformat() if plot.created_time else None,
             'is_presented': plot.is_presented
         })
+    
+    # Create a helper function for the template to get editor user info
+    def get_editor_user(editor_id):
+        return current_app.db.get_user_by_id(editor_id)
+    
+    return render_template('business_page.html', 
+                         user=user, 
+                         business=business, 
+                         owner=owner_name,
+                         plots=plots_data,
+                         files=files_data,
+                         get_editor_user=get_editor_user), 200
 
-    logger.info(f"Profile page accessed by user: {username} with {len(presented_plots)} presented plots",
-                extra_fields={'user_id': user._id, 'presented_plots_count': len(presented_plots)})
 
-    owner = current_app.db.get_user_by_id(business.owner)
-    return render_template('business_page.html', business=business, user=user, plots=plots_data, can_edit=can_edit_business(user, business), owner=owner.username), 200
+@views.route('/add_editor/<business_name>', methods=['POST'])
+@login_required
+def add_editor(business_name):
+    username = session.get('username')
+    user = current_app.db.get_user_by_username(username)
+    
+    # Get business by name
+    business = current_app.db.get_business_by_name(business_name)
+    if not business:
+        return render_template('error.html', error='Business not found'), 404
+    
+    # Check if user is the owner
+    if user._id != business.owner:
+        return render_template('error.html', error='Only the business owner can add editors'), 403
+    
+    # Get the username to add as editor
+    editor_username = request.form.get('username', '').strip()
+    if not editor_username:
+        return redirect(url_for('views.business_page', business_name=business_name))
+    
+    # Find the user by username
+    editor_user = current_app.db.get_user_by_username(editor_username)
+    if not editor_user:
+        # Could add a flash message here for better UX
+        return redirect(url_for('views.business_page', business_name=business_name))
+    
+    # Ensure editors is a set
+    if not hasattr(business, 'editors') or not isinstance(business.editors, set):
+        business.editors = set([business.owner])
+    
+    # Check if user is already an editor
+    if editor_user._id in business.editors:
+        # Could add a flash message here for better UX
+        return redirect(url_for('views.business_page', business_name=business_name))
+    
+    # Add user to editors
+    business.editors.add(editor_user._id)
+    
+    # Update business in database
+    current_app.db.update_business(business._id, {'editors': list(business.editors)})
+    
+    logger.info(f"User {username} added {editor_username} as editor to business {business_name}",
+               extra_fields={'owner_id': user._id, 'editor_id': editor_user._id, 'business_name': business_name})
+    
+    return redirect(url_for('views.business_page', business_name=business_name))
+
+
+@views.route('/remove_editor/<business_name>', methods=['POST'])
+@login_required
+def remove_editor(business_name):
+    username = session.get('username')
+    user = current_app.db.get_user_by_username(username)
+    
+    # Get business by name
+    business = current_app.db.get_business_by_name(business_name)
+    if not business:
+        return render_template('error.html', error='Business not found'), 404
+    
+    # Check if user is the owner
+    if user._id != business.owner:
+        return render_template('error.html', error='Only the business owner can remove editors'), 403
+    
+    # Get the editor ID to remove
+    editor_id = request.form.get('editor_id')
+    if not editor_id:
+        return redirect(url_for('views.business_page', business_name=business_name))
+    
+    # Check if trying to remove the owner
+    if editor_id == business.owner:
+        return redirect(url_for('views.business_page', business_name=business_name))
+    
+    # Ensure editors is a set
+    if not hasattr(business, 'editors') or not isinstance(business.editors, set):
+        business.editors = set([business.owner])
+    
+    # Remove user from editors
+    if editor_id in business.editors:
+        business.editors.remove(editor_id)
+        
+        # Update business in database
+        current_app.db.update_business(business._id, {'editors': list(business.editors)})
+        
+        # Get editor username for logging
+        editor_user = current_app.db.get_user_by_id(editor_id)
+        editor_username = editor_user.username if editor_user else 'Unknown User'
+        
+        logger.info(f"User {username} removed {editor_username} as editor from business {business_name}",
+                   extra_fields={'owner_id': user._id, 'editor_id': editor_id, 'business_name': business_name})
+    
+    return redirect(url_for('views.business_page', business_name=business_name))
 
 @views.route('/businesses_search')
 @login_required
 def businesses_search():
     return render_template('generic_page.html', title='Businesses Search', content='Coming soon'), 200
 
-@views.route('/new_business')
+@views.route('/new_business', methods=['GET', 'POST'])
 @login_required
 def new_business():
-    return render_template('generic_page.html', title='New Business', content='Coming soon'), 200
+    username = session.get('username')
+    user = current_app.db.get_user_by_username(username)
+    
+    if request.method == 'POST':
+        # Get form data
+        name = request.form.get('name', '').strip()
+        address = request.form.get('address', '').strip()
+        phone = request.form.get('phone', '').strip()
+        email = request.form.get('email', '').strip()
+        
+        # Validate mandatory fields
+        if not name:
+            return render_template('new_business.html', 
+                                 error='Business name is required',
+                                 form_data={'name': name, 'address': address, 'phone': phone, 'email': email})
+        
+        # Check if business name already exists
+        existing_business = current_app.db.get_business_by_name(name)
+        if existing_business:
+            return render_template('new_business.html', 
+                                 error=f'A business with the name "{name}" already exists. Please choose a different name.',
+                                 form_data={'name': name, 'address': address, 'phone': phone, 'email': email})
+        
+        try:
+            # Create new business
+            new_business = Business(
+                owner=user._id,
+                name=name,
+                address=address if address else None,
+                phone=phone if phone else None,
+                email=email if email else None
+            )
+            
+            # Save to database
+            business_id = current_app.db.create_business(new_business)
+            
+            logger.info(f"User {username} created new business: {name}",
+                       extra_fields={'user_id': user._id, 'business_id': business_id, 'business_name': name})
+            
+            # Redirect to the new business page
+            return redirect(url_for('views.business_page', business_name=name))
+            
+        except Exception as e:
+            logger.error(f"Failed to create business for user {username}: {e}",
+                        extra_fields={'user_id': user._id, 'business_name': name})
+            return render_template('new_business.html', 
+                                 error='An error occurred while creating the business. Please try again.',
+                                 form_data={'name': name, 'address': address, 'phone': phone, 'email': email})
+    
+    # GET request - show the form
+    return render_template('new_business.html')

@@ -198,14 +198,16 @@ class Business:
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "Business":
-        return cls(
+        business = cls(
             owner=data["owner"],
             name=data["name"],
             address=data.get("address"),
             phone=data.get("phone"),
             email=data.get("email"),
-            files=data.get("files", []),
-            presented_plot_order=data.get("presented_plot_order", []),
-            editors=set(data.get("editors", [])),  # Convert list back to set
             _id=data.get("_id"),
         )
+        # Set the additional attributes after creation
+        business.files = data.get("files", [])
+        business.presented_plot_order = data.get("presented_plot_order", [])
+        business.editors = set(data.get("editors", [business.owner]))  # Ensure owner is always included
+        return business

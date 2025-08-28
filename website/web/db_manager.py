@@ -137,6 +137,15 @@ class MongoDBManager:
         data = self.users.find_one({"username": username})
         return User.from_dict(data) if data else None
 
+    def get_user_by_id(self, user_id: str) -> Optional[User]:
+        """
+        gets the user from the collection by user ID
+        :param user_id:
+        :return: None if not found, otherwise rehydrates into a User object.
+        """
+        data = self.users.find_one({"_id": user_id})
+        return User.from_dict(data) if data else None
+
     def update_user(self, user_id: str, updates: Dict[str, Any]) -> bool:
         """
         updates the user in the collection
