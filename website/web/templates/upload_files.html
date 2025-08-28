@@ -4,9 +4,9 @@ Upload Files
 {% endblock %}
 {% block content %}
 <h1>Choose Files to Upload</h1>
-<a href="{{ url_for('views.profile') }}" class="button">Back to Profile</a>
+<a href="{{ url_for('views.business_page', business_name=business_name) }}" class="button">Back to Business Page</a>
 <div id="drop-area" style="border: 2px dashed #2196F3; padding: 30px; text-align: center; margin-bottom: 20px;">
-    <form id="upload-form" action="{{ url_for('views.upload_files') }}" method="post" enctype="multipart/form-data">
+    <form id="upload-form" action="{{ url_for('views.upload_files', business_name=business_name) }}" method="post" enctype="multipart/form-data">
         <input type="file" id="fileElem" name="file" accept=".csv" multiple required style="display:none;">
         <label for="fileElem" class="button green" style="cursor:pointer;">Choose Files</label>
         <span id="file-label">or drag files here</span>

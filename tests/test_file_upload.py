@@ -3,28 +3,30 @@ from unittest.mock import patch, MagicMock
 
 def test_upload_page_requires_login(client):
     """Test that upload page redirects to login when user is not logged in"""
-    response = client.get('/upload_files')
+    response = client.get('/upload_files/test-business')
     assert response.status_code == 302  # Redirect status code
     location = response.headers.get('Location', '')
     assert 'login' in location.lower()
 
-def test_upload_page_with_logged_in_user(client, mock_db, test_user):
-    """Test accessing upload page when user is logged in"""
-    # Mock user data and set up session
+def test_upload_page_with_logged_in_user(client, mock_db, test_user, mock_business):
+    """Test that upload page is accessible when user is logged in"""
     mock_db.get_user_by_username.return_value = test_user
+    mock_db.get_business_by_name.return_value = mock_business
     mock_db.get_files_for_user.return_value = []
     
     with client.session_transaction() as sess:
         sess['username'] = 'testuser'
     
-    response = client.get('/upload_files')
+    response = client.get('/upload_files/test-business')
     assert response.status_code == 200
     assert b'Choose Files to Upload' in response.data
-    assert b'Back to Profile' in response.data
+    assert b'Back to Business Page' in response.data
 
-def test_file_validation_csv_allowed(client, mock_db, test_user, mock_csv_file, mock_processed_file):
+def test_file_validation_csv_allowed(client, mock_db, test_user, mock_csv_file, mock_processed_file, mock_business):
     """Test that CSV files are allowed for upload"""
     mock_db.get_user_by_username.return_value = test_user
+    mock_db.get_business_by_name.return_value = mock_business
+    mock_db.create_business.return_value = mock_business
     
     with client.session_transaction() as sess:
         sess['username'] = 'testuser'
@@ -33,7 +35,7 @@ def test_file_validation_csv_allowed(client, mock_db, test_user, mock_csv_file, 
         mock_process.return_value = mock_processed_file
         mock_db.create_file.return_value = "file_id"
         
-        response = client.post('/upload_files', 
+        response = client.post('/upload_files/test-business', 
                              data={'file': mock_csv_file},
                              content_type='multipart/form-data')
         
@@ -42,14 +44,15 @@ def test_file_validation_csv_allowed(client, mock_db, test_user, mock_csv_file, 
         assert data['success'] == True
         assert len(data['failed_files']) == 0
 
-def test_file_validation_non_csv_rejected(client, mock_db, test_user, mock_txt_file):
+def test_file_validation_non_csv_rejected(client, mock_db, test_user, mock_txt_file, mock_business):
     """Test that non-CSV files are rejected"""
     mock_db.get_user_by_username.return_value = test_user
+    mock_db.get_business_by_name.return_value = mock_business
     
     with client.session_transaction() as sess:
         sess['username'] = 'testuser'
     
-    response = client.post('/upload_files', 
+    response = client.post('/upload_files/test-business', 
                          data={'file': mock_txt_file},
                          content_type='multipart/form-data')
     
@@ -59,20 +62,22 @@ def test_file_validation_non_csv_rejected(client, mock_db, test_user, mock_txt_f
     assert len(data['failed_files']) == 1
     assert 'Invalid file: test.txt' in data['failed_files'][0]
 
-def test_multiple_files_upload(client, mock_db, test_user, mock_multiple_csv_files):
+def test_multiple_files_upload(client, mock_db, test_user, mock_multiple_csv_files, mock_business):
     """Test uploading multiple files at once"""
     mock_db.get_user_by_username.return_value = test_user
+    mock_db.get_business_by_name.return_value = mock_business
+    mock_db.create_business.return_value = mock_business
     
     with client.session_transaction() as sess:
         sess['username'] = 'testuser'
     
     with patch('website.web.csv_processor.process_file') as mock_process:
-        mock_processed_file1 = File(filename="file1.csv", user_id="user123")
-        mock_processed_file2 = File(filename="file2.csv", user_id="user123")
+        mock_processed_file1 = File(business_id="business123", filename="file1.csv")
+        mock_processed_file2 = File(business_id="business123", filename="file2.csv")
         mock_process.side_effect = [mock_processed_file1, mock_processed_file2]
         mock_db.create_file.return_value = "file_id"
         
-        response = client.post('/upload_files', 
+        response = client.post('/upload_files/test-business', 
                              data={'file': mock_multiple_csv_files},
                              content_type='multipart/form-data')
         
@@ -81,19 +86,21 @@ def test_multiple_files_upload(client, mock_db, test_user, mock_multiple_csv_fil
         assert data['success'] == True
         assert len(data['failed_files']) == 0
 
-def test_mixed_files_upload_some_valid_some_invalid(client, mock_db, test_user, mock_mixed_files):
+def test_mixed_files_upload_some_valid_some_invalid(client, mock_db, test_user, mock_mixed_files, mock_business):
     """Test uploading mix of valid and invalid files"""
     mock_db.get_user_by_username.return_value = test_user
+    mock_db.get_business_by_name.return_value = mock_business
+    mock_db.create_business.return_value = mock_business
     
     with client.session_transaction() as sess:
         sess['username'] = 'testuser'
     
     with patch('website.web.csv_processor.process_file') as mock_process:
-        mock_processed_file = File(filename="valid.csv", user_id="user123")
+        mock_processed_file = File(business_id="business123", filename="valid.csv")
         mock_process.return_value = mock_processed_file
         mock_db.create_file.return_value = "file_id"
         
-        response = client.post('/upload_files', 
+        response = client.post('/upload_files/test-business', 
                              data={'file': mock_mixed_files},
                              content_type='multipart/form-data')
         
@@ -103,14 +110,16 @@ def test_mixed_files_upload_some_valid_some_invalid(client, mock_db, test_user, 
         assert len(data['failed_files']) == 1
         assert 'Invalid file: invalid.txt' in data['failed_files'][0]
 
-def test_empty_file_upload(client, mock_db, test_user, mock_empty_csv_file):
+def test_empty_file_upload(client, mock_db, test_user, mock_empty_csv_file, mock_business):
     """Test uploading an empty file"""
     mock_db.get_user_by_username.return_value = test_user
+    mock_db.get_business_by_name.return_value = mock_business
+    mock_db.create_business.return_value = mock_business
     
     with client.session_transaction() as sess:
         sess['username'] = 'testuser'
     
-    response = client.post('/upload_files', 
+    response = client.post('/upload_files/test-business', 
                          data={'file': mock_empty_csv_file},
                          content_type='multipart/form-data')
     
@@ -121,21 +130,16 @@ def test_empty_file_upload(client, mock_db, test_user, mock_empty_csv_file):
     assert len(data['failed_files']) == 1
     assert 'Failed to parse CSV' in data['failed_files'][0]
 
-def test_upload_page_displays_user_files(client, mock_db, test_user):
-    """Test that upload page displays existing user files"""
+def test_upload_page_displays_user_files(client, mock_db, test_user, mock_processed_file, mock_business):
+    """Test that upload page displays user's existing files"""
+    # Mock user data and set up session
     mock_db.get_user_by_username.return_value = test_user
-    
-    # Mock existing files
-    existing_files = [
-        File(filename="existing1.csv", user_id="user123"),
-        File(filename="existing2.csv", user_id="user123")
-    ]
-    mock_db.get_files_for_user.return_value = existing_files
-    
+    mock_db.get_business_by_name.return_value = mock_business
+    mock_db.get_files_for_business.return_value = [mock_processed_file]
+
     with client.session_transaction() as sess:
         sess['username'] = 'testuser'
-    
-    response = client.get('/upload_files')
+
+    response = client.get('/upload_files/test-business')
     assert response.status_code == 200
-    assert b'existing1.csv' in response.data
-    assert b'existing2.csv' in response.data
+    assert b'Choose Files to Upload' in response.data

@@ -373,7 +373,7 @@ window.addEventListener('beforeunload', function(e) {
     }
 });
 
-// Override the "Back to Profile" link to check for unsaved changes
+// Override the "Back to Business Page" link to check for unsaved changes
 document.addEventListener('DOMContentLoaded', function() {
     const backToProfileLink = document.querySelector('a[href*="profile"], a[href="/profile"], a.button[href*="profile"]');
     

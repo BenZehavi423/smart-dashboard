@@ -5,36 +5,32 @@ Register
 {% endblock %}
 
 {% block content %}
-<div class="start-pages">
-<h2>Register</h2>
+<div class="start-pages auth-page">
+  <h1 class="page-title">Sign Up</h1>
 
 <!-- Flash messages (success or error) -->
 {% with messages = get_flashed_messages(with_categories=true) %}
   {% if messages %}
-    <ul style="list-style: none; padding: 0;">
+    <ul class="flash-list">
       {% for category, message in messages %}
-        <li style="color: {% if category == 'error' %}red{% else %}green{% endif %};">
-          {{ message }}
-        </li>
+        <li class="flash-item {{ 'error' if category=='error' else 'success' }}">{{ message }}</li>
       {% endfor %}
     </ul>
   {% endif %}
 {% endwith %}
 
-<!-- Registration form -->
-<form method="POST" action="{{ url_for('auth.register') }}">
-  <label for="username">Username:</label><br />
-  <input type="text" id="username" name="username" required /><br /><br />
+  <form class="auth-form" method="POST" action="{{ url_for('auth.register') }}">
+    <div class="form-row">
+      <label for="username">Username</label>
+      <input type="text" id="username" name="username" required />
+    </div>
+    <div class="form-row">
+      <label for="password">Password</label>
+      <input type="password" id="password" name="password" required />
+    </div>
+    <button type="submit" class="button green">Sign Up</button>
+  </form>
 
-  <label for="email">Email:</label><br />
-  <input type="email" id="email" name="email" required /><br /><br />
-
-  <label for="password">Password:</label><br />
-  <input type="password" id="password" name="password" required /><br /><br />
-
-  <button type="submit">Register</button>
-</form>
-
-<p>Already have an account? <a href="{{ url_for('auth.login') }}">Log in</a></p>
+  <p class="auth-switch">Already have an account?<a class="button blue" href="{{ url_for('auth.login') }}">Log In</a></p>
 </div>
 {% endblock %}

@@ -2,93 +2,44 @@
 {% block title %}
 Dashboard
 {% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='profile.css') }}">
+{% endblock %}
+
 {% block content %}
 
-<h1 class="page-title">Welcome, {{ user.username }}</h1>
-
-<div class="dashboard-section">
-  <h2>My Plots</h2>
-  {% if plots %}
-  <div class="plot-gallery">
-    <div class="plot-container">
-      <button class="nav-btn prev-btn" onclick="previousPlot()" id="prevBtn">‹</button>
-      <div class="plot-window">
-        <div class="plot-header">
-          <h3 id="currentPlotName">Plot Name</h3>
-          <button class="download-btn" onclick="downloadCurrentPlot()" title="Download Image">Download</button>
-        </div>
-        <img id="currentPlot" src="" alt="Plot" style="max-width: 100%; height: auto;">
-      </div>
-      <button class="nav-btn next-btn" onclick="nextPlot()" id="nextBtn">›</button>
-    </div>
-    <div class="plot-counter">
-      <span id="plotCounter">1/{{ plots|length }}</span>
-    </div>
-  </div>
-  {% else %}
-  <div class="no-plots">
-    <p>No plots yet. Upload files to get started.</p>
-  </div>
-  {% endif %}
-  <div class="plot-actions">
-    <a href="{{ url_for('views.edit_plots') }}" class="button blue">Edit Plots</a>
-    <a href="{{ url_for('views.analyze_data') }}" class="button green">Analyze Data</a>
-  </div>
-</div>
-
-<div class="dashboard-section">
-  <h2>Uploaded Files</h2>
-  <a href="{{ url_for('views.upload_files') }}" class="button blue">Upload New Files</a>
-</div>
+<h1 class="page-title">{{ user.username }}'s Profile Page</h1>
 
 <div class="dashboard-section">
   <h2>My Details</h2>
+  <div class="section-header">
+    <a href="{{ url_for('views.edit_profile_details') }}" class="btn btn-primary btn-sm">Edit</a>
+  </div>
   <ul>
     <li><strong>Username:</strong> {{ user.username }}</li>
-    <li><strong>Email:</strong> {{ user.email }}</li>
-    <li><strong>Company:</strong> Coming soon</li>
+    <li><strong>Email:</strong> {{ user.email if user.email else "N/A" }}</li>
+    <li><strong>Phone Number:</strong> {{ user.phone if user.phone else "N/A" }}</li>
   </ul>
 </div>
 
 <div class="dashboard-section">
-  <h2>Ask the LLM</h2>
-  <form id="llm-form">
-    <textarea id="llm-query" name="query" rows="4" placeholder="Ask anything about your data..."></textarea>
-    <br>
-    <button type="submit" class="button blue">Ask</button>
-  </form>
-  <div id="llm-response" style="margin-top: 20px;"></div>
+  <h2>My Businesses</h2>
+  <ul>
+    {% if businesses %}
+      {% for business in businesses %}
+        <li>
+          <a href="/business_page/{{ business.name }}">
+            {{ business.name }}
+          </a>
+        </li>
+      {% endfor %}
+    {% else %}
+      <li>No businesses found. Create your first business to get started!
+        <a href="{{ url_for('views.new_business') }}" class="button green">Create New Business</a>
+      </li>
+    {% endif %}
+  </ul>
 </div>
-
-<link rel="stylesheet" href="{{ url_for('static', filename='plots.css') }}">
-<script src="{{ url_for('static', filename='profile.js') }}"></script>
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-  const plotsData = {{ plots|tojson }};
-  initializePlots(plotsData);
-  const urlParams = new URLSearchParams(window.location.search);
-  if (urlParams.get('success') === 'changes_saved') {
-    showTemporarySuccessMessage('Changes Saved', 'Your changes are now live.', 4000);
-    window.history.replaceState({}, document.title, window.location.pathname);
-  }
-});
-
-document.getElementById('llm-form').addEventListener('submit', function(e) {
-  e.preventDefault();
-  const query = document.getElementById('llm-query').value;
-  fetch('/ask_llm', {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({ query })
-  })
-  .then(response => response.json())
-  .then(data => {
-    document.getElementById('llm-response').textContent = data.error ? 'Error: ' + data.error : data.response;
-  })
-  .catch(() => {
-    document.getElementById('llm-response').textContent = 'An error occurred.';
-  });
-});
-</script>
 
 {% endblock %}

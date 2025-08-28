@@ -1,7 +1,8 @@
 from pymongo import MongoClient
 from typing import Optional, Dict, Any, List
-from .models import File, Dataset, AnalysisResult, User, UserProfile, Plot
+from .models import File, Dataset, AnalysisResult, User, Plot, Business
 from .logger import logger
+from datetime import datetime
 
 class MongoDBManager:
     def __init__(self, uri: str = "mongodb://db:27017", db_name: str = "mydb"):
@@ -13,8 +14,10 @@ class MongoDBManager:
         self.datasets = self.db["datasets"]
         self.analysis = self.db["analysis_results"]
         self.users = self.db["users"]
-        self.user_profiles = self.db["user_profiles"]
         self.plots = self.db["plots"]
+        self.businesses = self.db["businesses"]
+        self.dashboards = self.db["dashboards"]
+
 
 
 # ----- FILE OPERATIONS -----
@@ -49,16 +52,22 @@ class MongoDBManager:
     def delete_file(self, file_id: str) -> bool:
         result = self.files.delete_one({"_id": file_id})
         return result.deleted_count > 0
-    
-    def get_files_for_user(self, user: User) -> List[File]:
+
+    def get_files_for_business(self, business: Business) -> List[File]:
         """
-        Returns a list of File objects uploaded by the given user.
-        :param user: User object
+        Returns a list of File objects uploaded by the given business.
+        :param business: Business object
         :return: List of File objects
         """
-        docs = self.files.find({"user_id": user._id})
+        docs = self.files.find({"business_id": business._id})
         return [File.from_dict(d) for d in docs]
-
+    
+    def get_any_file(self) -> Optional[File]:
+        """
+        Return any File document from the collection (first match), or None if empty.
+        """
+        doc = self.files.find_one({})
+        return File.from_dict(doc) if doc else None
     
 # ----- DATASET OPERATIONS -----
 
@@ -127,6 +136,25 @@ class MongoDBManager:
         """
         data = self.users.find_one({"username": username})
         return User.from_dict(data) if data else None
+
+    def get_user_by_id(self, user_id: str) -> Optional[User]:
+        """
+        gets the user from the collection by user ID
+        :param user_id:
+        :return: None if not found, otherwise rehydrates into a User object.
+        """
+        data = self.users.find_one({"_id": user_id})
+        return User.from_dict(data) if data else None
+
+    def update_user(self, user_id: str, updates: Dict[str, Any]) -> bool:
+        """
+        updates the user in the collection
+        :param user_id:
+        :param updates:
+        :return: True if at least one doc was modified, otherwise False
+        """
+        result = self.users.update_one({"_id": user_id}, {"$set": updates})
+        return result.modified_count > 0
     
     def delete_user(self, user_id: str) -> bool:
         """
@@ -136,47 +164,6 @@ class MongoDBManager:
         """
         result = self.users.delete_one({"_id": user_id})
         return result.deleted_count > 0
-
-# ----- USER PROFILE OPERATIONS -----
-    def create_user_profile(self, profile: UserProfile) -> str:
-        """
-        Creates a new user profile
-        :param profile: UserProfile object to save
-        :return: profile id
-        """
-        self.user_profiles.insert_one(profile.to_dict())
-        return profile._id
-    
-    def get_user_profile(self, user_id: str) -> Optional[UserProfile]:
-        """
-        Gets the user profile for a specific user
-        :param user_id: ID of the user
-        :return: UserProfile object or None if not found
-        """
-        data = self.user_profiles.find_one({"user_id": user_id})
-        return UserProfile.from_dict(data) if data else None
-    
-    def get_or_create_user_profile(self, user_id: str) -> UserProfile:
-        """
-        Gets existing user profile or creates a new one if it doesn't exist
-        :param user_id: ID of the user
-        :return: UserProfile object
-        """
-        profile = self.get_user_profile(user_id)
-        if not profile:
-            profile = UserProfile(user_id=user_id)
-            self.create_user_profile(profile)
-        return profile
-    
-    def update_user_profile(self, user_id: str, updates: Dict[str, Any]) -> bool:
-        """
-        Updates the user profile
-        :param user_id: ID of the user
-        :param updates: Dictionary of fields to update
-        :return: True if at least one doc was modified, otherwise False
-        """
-        result = self.user_profiles.update_one({"user_id": user_id}, {"$set": updates})
-        return result.modified_count > 0
 
 # ----- PLOT OPERATIONS -----
     def create_plot(self, plot: Plot) -> str:
@@ -188,11 +175,11 @@ class MongoDBManager:
         try:
             self.plots.insert_one(plot.to_dict())
             logger.info(f"Plot created successfully: {plot.image_name}", 
-                        extra_fields={'plot_id': plot._id, 'user_id': plot.user_id, 'plot_name': plot.image_name})
+                        extra_fields={'plot_id': plot._id, 'business_id': plot.business_id, 'plot_name': plot.image_name})
             return plot._id
         except Exception as e:
             logger.error(f"Failed to create plot: {plot.image_name}", 
-                         extra_fields={'user_id': plot.user_id, 'plot_name': plot.image_name, 'error': str(e)})
+                         extra_fields={'business_id': plot.business_id, 'plot_name': plot.image_name, 'error': str(e)})
             raise
     
     def get_plot(self, plot_id: str) -> Optional[Plot]:
@@ -212,15 +199,15 @@ class MongoDBManager:
         """
         result = self.plots.delete_one({"_id": plot_id})
         return result.deleted_count > 0
-    
-    def get_plots_for_user(self, user_id: str, only_presented: Optional[bool] = None) -> List[Plot]:
+
+    def get_plots_for_business(self, business_id: str, only_presented: Optional[bool] = None) -> List[Plot]:
         """
-        Returns a list of Plot objects belonging to the given user
-        :param user_id: ID of the user
+        Returns a list of Plot objects belonging to the given business
+        :param business_id: ID of the business
         :param only_presented: If True, return only presented images. If False, return only not presented images. If None, return all images.
         :return: List of Plot objects
         """
-        query: Dict[str, Any] = {"user_id": user_id}
+        query: Dict[str, Any] = {"business_id": business_id}
         if only_presented is not None:
             query["is_presented"] = only_presented
         
@@ -236,57 +223,57 @@ class MongoDBManager:
         """
         result = self.plots.update_one({"_id": plot_id}, {"$set": {"is_presented": is_presented}})
         return result.modified_count > 0
-    
-    def get_presented_plots_for_user_ordered(self, user_id: str) -> List[Plot]:
+
+    def get_presented_plots_for_business_ordered(self, business_name: str) -> List[Plot]:
         """
-        Returns presented plots for a user ordered according to user profile
-        :param user_id: ID of the user
+        Returns presented plots for a business ordered according to user profile
+        :param business_name: Name of the business
         :return: List of Plot objects in the correct order
         """
-        # Get user profile with plot order
-        profile = self.get_or_create_user_profile(user_id)
-        
+        # Get business with plot order
+        business = self.get_business_by_name(business_name)
+
         # Get all presented plots
-        presented_plots = self.get_plots_for_user(user_id, only_presented=True)
-        
+        presented_plots = self.get_plots_for_business(business._id, only_presented=True)
+
         # Create a dictionary for quick lookup
         plots_dict = {plot._id: plot for plot in presented_plots}
         
         # Order plots according to profile order
         ordered_plots = []
-        for plot_id in profile.presented_plot_order:
+        for plot_id in business.presented_plot_order:
             if plot_id in plots_dict:
                 ordered_plots.append(plots_dict[plot_id])
         
         # Add any plots that are presented but not in the order list (new plots)
         for plot in presented_plots:
-            if plot._id not in profile.presented_plot_order:
+            if plot._id not in business.presented_plot_order:
                 ordered_plots.append(plot)
         
         return ordered_plots
-    
-    def update_plot_presentation_order(self, user_id: str, plot_order: List[str]) -> bool:
+
+    def update_plot_presentation_order(self, business_name: str, plot_order: List[str]) -> bool:
         """
-        Updates the presentation order of plots for a user
-        :param user_id: ID of the user
+        Updates the presentation order of plots for a business
+        :param business_name: Name of the business
         :param plot_order: List of plot IDs in the desired order
         :return: True if update was successful
         """
         try:
-            logger.info(f"Updating plot presentation order for user: {user_id}", 
-                        extra_fields={'user_id': user_id, 'plot_order_length': len(plot_order)})
-            
-            result = self.update_user_profile(user_id, {"presented_plot_order": plot_order})
-            
+            logger.info(f"Updating plot presentation order for business: {business_name}", 
+                        extra_fields={'business_name': business_name, 'plot_order_length': len(plot_order)})
+
+            result = self.update_business(business_name, {"presented_plot_order": plot_order})
+
             if result:
-                logger.info(f"Successfully updated plot presentation order for user: {user_id}")
+                logger.info(f"Successfully updated plot presentation order for business: {business_name}")
             else:
-                logger.error(f"Failed to update plot presentation order for user: {user_id}")
-            
+                logger.error(f"Failed to update plot presentation order for business: {business_name}")
+
             return result
         except Exception as e:
-            logger.error(f"Error updating plot presentation order for user: {user_id}", 
-                         extra_fields={'user_id': user_id, 'error': str(e)})
+            logger.error(f"Error updating plot presentation order for business: {business_name}", 
+                         extra_fields={'business_name': business_name, 'error': str(e)})
             return False
     
     def update_multiple_plots(self, plot_updates: List[Dict[str, Any]]) -> bool:
@@ -313,3 +300,89 @@ class MongoDBManager:
             logger.error(f"Failed to update multiple plots", 
                          extra_fields={'updates_count': len(plot_updates), 'error': str(e)})
             return False
+
+# ----- BUSINESS OPERATIONS -----
+    def create_business(self, business: Business) -> str:
+        """
+        Creates a new business entry
+        :param business: Business object representing the business
+        :return: Business id
+        """
+        self.businesses.insert_one(business.to_dict())
+        return business._id
+
+    def get_business_by_id(self, business_id: str) -> Optional[Business]:
+        """
+        Retrieves a business by its ID
+        :param business_id: ID of the business
+        :return: Business object if found, None otherwise
+        """
+        data = self.businesses.find_one({"_id": business_id})
+        return Business.from_dict(data) if data else None
+
+    def get_business_by_name(self, business_name: str) -> Optional[Business]:
+        """
+        Retrieves a business by its name
+        :param business_name: Name of the business
+        :return: Business object if found, None otherwise
+        """
+        data = self.businesses.find_one({"name": business_name})
+        return Business.from_dict(data) if data else None
+
+    def update_business(self, business_id: str, updates: Dict[str, Any]) -> bool:
+        """
+        Updates a business entry
+        :param business_id: ID of the business to update
+        :param updates: Dictionary of fields to update
+        :return: True if at least one doc was modified, otherwise False
+        """
+        result = self.businesses.update_one({"_id": business_id}, {"$set": updates})
+        return result.modified_count > 0
+
+    def delete_business(self, business_id: str) -> bool:
+        """
+        Deletes a business entry
+        :param business_id: ID of the business to delete
+        :return: True if at least one doc was deleted, otherwise False
+        """
+        result = self.businesses.delete_one({"_id": business_id})
+        return result.deleted_count > 0
+
+    def get_businesses_for_owner(self, owner_id: str) -> List[Business]:
+        """
+        Retrieves all businesses owned by a specific user
+        :param owner_id: ID of the owner
+        :return: List of Business objects
+        """
+        businesses = self.businesses.find({"owner": owner_id})
+        return [Business.from_dict(d) for d in businesses]
+
+        
+
+
+# ----- DASHBOARD OPERATIONS -----
+    def create_dashboard(self, user_id: str, file_id: str, insights: List[str]) -> str:
+        """
+        Creates a new dashboard entry
+        :param user_id: ID of the user
+        :param file_id: ID of the associated file
+        :param insights: List of insights for the dashboard
+        :return: dashboard id
+        """
+        dashboard = {
+            "user_id": user_id,
+            "file_id": file_id,
+            "created_time": datetime.utcnow(),
+            "insights": insights
+        }
+        result = self.dashboards.insert_one(dashboard)
+        return str(result.inserted_id)
+    
+    def get_dashboard_for_user(self, user_id: str) -> Optional[Dict[str, Any]]:
+        return self.dashboards.find_one({"user_id": user_id})
+    
+    def delete_dashboard(self, user_id: str) -> bool:
+        #notice!!!! delet by user id' if we add multiple dashboard we need to change this
+        result = self.dashboards.delete_one({"user_id": user_id})
+        return result.deleted_count > 0
+

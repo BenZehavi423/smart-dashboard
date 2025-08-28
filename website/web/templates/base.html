@@ -4,6 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>{% block title %}Home{% endblock %}</title>
+  <link rel="icon" href="{{ url_for('static', filename='images/logo-head.jpg') }}" type="image/jpeg">
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 
@@ -12,21 +13,109 @@
   <!-- Navbar -->
   <nav class="navbar">
     <div class="navbar-left">
-      <img src="{{ url_for('static', filename='logo.jpg') }}" alt="Logo" class="logo">
-    </div>
-    <div class="navbar-right">
-      <a href="{{ url_for('views.home') }}">Home</a>
-      {% if session.username %}
-        <a href="{{ url_for('views.upload_files') }}">Upload</a>
-        <a href="{{ url_for('views.profile') }}">Profile</a>
-        <a href="{{ url_for('views.analyze_data') }}">Insights</a>
-        <a href="{{ url_for('auth.logout') }}" class="button red">Logout</a>
-      {% else %}
-        <a href="{{ url_for('auth.login') }}">Login</a>
-        <a href="{{ url_for('auth.register') }}">Register</a>
+      {% if request.endpoint in ['auth.login', 'auth.register'] %}
+        <a href="{{ url_for('views.home') }}" class="back-home">
+          <span class="icon-door" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M4 21h16"/>
+              <path d="M6 21V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v16"/>
+              <circle cx="14" cy="12" r="1"/>
+              <path d="M3 12h5"/>
+              <path d="M6 9l2 3-2 3"/>
+            </svg>
+          </span>
+          <span>Back to Home</span>
+        </a>
+      {% elif session.username %}
+        {% set current_page_label = '' %}
+        {% if request.endpoint == 'views.profile' %}{% set current_page_label = 'My Profile' %}
+        {% elif request.endpoint == 'views.upload_files' %}{% set current_page_label = 'Upload Files' %}
+        {% elif request.endpoint == 'views.edit_plots' %}{% set current_page_label = 'Edit Plots' %}
+        {% elif request.endpoint == 'views.analyze_data' %}{% set current_page_label = 'Analyze Data' %}
+        {% elif request.endpoint == 'views.businesses_search' %}{% set current_page_label = 'Businesses Search' %}
+        {% elif request.endpoint == 'views.new_business' %}{% set current_page_label = 'New Business' %}
+        {% endif %}
+        <div class="dropdown" id="mainMenuDropdown">
+          <button class="dropbtn" id="menuToggleBtn" aria-label="Menu" aria-haspopup="true" aria-expanded="false">&#9776;</button>
+          <span class="nav-current">{{ current_page_label }}</span>
+          <div class="dropdown-content" role="menu">
+            <a href="{{ url_for('views.profile') }}">My Profile</a>
+            <a href="{{ url_for('views.businesses_search') }}">Businesses Search</a>
+            <a href="{{ url_for('views.new_business') }}">New Business</a>
+            <a href="{{ url_for('auth.logout') }}" class="button red">Log Out</a>
+          </div>
+        </div>
       {% endif %}
     </div>
+    <div class="navbar-center">SmartDashboard</div>
   </nav>
+
+  <script>
+    (function() {
+      var dropdown = document.getElementById('mainMenuDropdown');
+      var toggleBtn = document.getElementById('menuToggleBtn');
+      var dropdownContent = dropdown ? dropdown.querySelector('.dropdown-content') : null;
+      if (!dropdown || !toggleBtn || !dropdownContent) return;
+
+      function closeMenu() {
+        dropdown.classList.remove('open');
+        toggleBtn.setAttribute('aria-expanded', 'false');
+      }
+
+      function positionDropdown() {
+        if (!dropdown.classList.contains('open')) return;
+        
+        var rect = toggleBtn.getBoundingClientRect();
+        var viewportWidth = window.innerWidth;
+        var viewportHeight = window.innerHeight;
+        var dropdownWidth = dropdownContent.offsetWidth;
+        var dropdownHeight = dropdownContent.offsetHeight;
+        
+        // Reset positioning
+        dropdownContent.style.left = '0';
+        dropdownContent.style.right = 'auto';
+        dropdownContent.style.top = '100%';
+        
+        // Check if dropdown would go off the right edge
+        if (rect.left + dropdownWidth > viewportWidth) {
+          dropdownContent.style.left = 'auto';
+          dropdownContent.style.right = '0';
+        }
+        
+        // Check if dropdown would go off the bottom edge
+        if (rect.bottom + dropdownHeight > viewportHeight) {
+          dropdownContent.style.top = 'auto';
+          dropdownContent.style.bottom = '100%';
+          dropdownContent.style.marginTop = '0';
+          dropdownContent.style.marginBottom = '4px';
+        }
+      }
+
+      toggleBtn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        var isOpen = dropdown.classList.toggle('open');
+        toggleBtn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+        
+        if (isOpen) {
+          // Position dropdown after it's shown
+          setTimeout(positionDropdown, 0);
+        }
+      });
+
+      document.addEventListener('click', function(e) {
+        if (!dropdown.contains(e.target)) {
+          closeMenu();
+        }
+      });
+
+      // Reposition on window resize
+      window.addEventListener('resize', function() {
+        if (dropdown.classList.contains('open')) {
+          positionDropdown();
+        }
+      });
+    })();
+  </script>
 
   <!-- Flash Messages -->
   {% with messages = get_flashed_messages(with_categories=true) %}
