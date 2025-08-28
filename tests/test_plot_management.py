@@ -36,7 +36,7 @@ def test_business_page_elements_present(client, mock_db, test_user, mock_present
     response = client.get('/business_page/test-business')
     assert response.status_code == 200
     assert b'Plots' in response.data
-    assert b'Uploaded Files' in response.data
+    assert b'Files' in response.data
     assert b'Details' in response.data
 
 def test_business_page_no_plots_shows_analyze_button(client, mock_db, test_user, mock_business):

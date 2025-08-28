@@ -2,6 +2,11 @@
 {% block title %}
 Dashboard
 {% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='business_page.css') }}">
+{% endblock %}
+
 {% block content %}
 
 <!-- TODO: change to business name -->
@@ -9,6 +14,11 @@ Dashboard
 
 <div class="dashboard-section">
   <h2>Details</h2>
+  {% if user._id in business.editors %}
+    <div class="section-header">
+      <a href="{{ url_for('views.edit_business_details', business_name=business.name) }}" class="btn btn-primary btn-sm">Edit</a>
+    </div>
+  {% endif %}
   <ul>
     <li><strong>Name:</strong> {{ business.name }}</li>
     {% if business.address %} <li><strong>Address:</strong> {{ business.address }}</li> {% endif %}
@@ -18,6 +28,44 @@ Dashboard
   </ul>
 </div>
 
+{% if user._id == business.owner %}
+<div class="dashboard-section">
+  <h2>Manage Editors</h2>
+  <div class="editor-management">
+    <div class="add-editor-form">
+      <h3>Add Editor</h3>
+      <form method="POST" action="{{ url_for('views.add_editor', business_name=business.name) }}">
+        <div class="form-group">
+          <label for="username">Username:</label>
+          <input type="text" id="username" name="username" required>
+          <small>Enter the username of the person you want to give editing privileges to</small>
+        </div>
+        <button type="submit" class="btn btn-primary">Add Editor</button>
+      </form>
+    </div>
+    
+    <div class="current-editors">
+      <h3>Current Editors</h3>
+      <ul class="editors-list">
+        {% for editor_id in business.editors %}
+          {% set editor_user = get_editor_user(editor_id) %}
+          <li class="editor-item">
+            <span class="editor-name">{{ editor_user.username if editor_user else 'Unknown User' }}</span>
+            {% if editor_id != business.owner %}
+              <form method="POST" action="{{ url_for('views.remove_editor', business_name=business.name) }}" style="display: inline;">
+                <input type="hidden" name="editor_id" value="{{ editor_id }}">
+                <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Are you sure you want to remove this editor?')">Remove</button>
+              </form>
+            {% else %}
+              <span class="owner-badge">Owner</span>
+            {% endif %}
+          </li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+</div>
+{% endif %}
 
 <div class="dashboard-section">
   <h2>Plots</h2>
@@ -28,7 +76,7 @@ Dashboard
       <div class="plot-window">
         <div class="plot-header">
           <h3 id="currentPlotName">Plot Name</h3>
-          {% if can_edit %}
+          {% if user._id in business.editors %}
             <button class="download-btn" onclick="downloadCurrentPlot()" title="Download Image">Download</button>
           {% endif %}
         </div>
@@ -45,21 +93,27 @@ Dashboard
     <p>No plots yet. Upload files to get started.</p>
   </div>
   {% endif %}
-  {% if can_edit %}
+  {% if user._id in business.editors %}
     <div class="plot-actions">
-      <a href="{{ url_for('views.edit_plots', business_name=business_name) }}" class="button blue">Edit Plots</a>
-      <a href="{{ url_for('views.analyze_data', business_name=business_name) }}" class="button green">Analyze Data</a>
+      <a href="{{ url_for('views.edit_plots', business_name=business.name) }}" class="button blue">Edit Plots</a>
+      <a href="{{ url_for('views.analyze_data', business_name=business.name) }}" class="button green">Analyze Data</a>
     </div>
   {% endif %}
 </div>
 
-{% if can_edit %}
+{% if user._id in business.editors %}
   <div class="dashboard-section">
-    <h2>Uploaded Files</h2>
-    <a href="{{ url_for('views.upload_files', business_name=business_name) }}" class="button blue">Upload New Files</a>
+    <h2>Files</h2>
+    <a href="{{ url_for('views.upload_files', business_name=business.name) }}" class="button blue">Upload New Files</a>
+    {% if files %}
+      <ul>
+        {% for file in files %}
+          <li>{{ file.filename }}</li>
+        {% endfor %}
+      </ul>
+    {% endif %}
   </div>
 {% endif %}
-
 
 <link rel="stylesheet" href="{{ url_for('static', filename='plots.css') }}">
 <script src="{{ url_for('static', filename='profile.js') }}"></script>

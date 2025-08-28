@@ -9,6 +9,7 @@ def test_upload_files_button_redirects_to_upload_page(client, mock_db, mock_busi
     # Mock user data and set up session
     test_user = User(username="testuser", email="test@example.com", password_hash="hashed")
     mock_db.get_user_by_username.return_value = test_user
+    mock_db.get_business_by_name.return_value = mock_business
     
     with client.session_transaction() as sess:
         sess['username'] = 'testuser'

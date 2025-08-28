@@ -8,10 +8,10 @@ def test_upload_page_requires_login(client):
     location = response.headers.get('Location', '')
     assert 'login' in location.lower()
 
-def test_upload_page_with_logged_in_user(client, mock_db, test_user):
-    """Test accessing upload page when user is logged in"""
-    # Mock user data and set up session
+def test_upload_page_with_logged_in_user(client, mock_db, test_user, mock_business):
+    """Test that upload page is accessible when user is logged in"""
     mock_db.get_user_by_username.return_value = test_user
+    mock_db.get_business_by_name.return_value = mock_business
     mock_db.get_files_for_user.return_value = []
     
     with client.session_transaction() as sess:
@@ -44,9 +44,10 @@ def test_file_validation_csv_allowed(client, mock_db, test_user, mock_csv_file, 
         assert data['success'] == True
         assert len(data['failed_files']) == 0
 
-def test_file_validation_non_csv_rejected(client, mock_db, test_user, mock_txt_file):
+def test_file_validation_non_csv_rejected(client, mock_db, test_user, mock_txt_file, mock_business):
     """Test that non-CSV files are rejected"""
     mock_db.get_user_by_username.return_value = test_user
+    mock_db.get_business_by_name.return_value = mock_business
     
     with client.session_transaction() as sess:
         sess['username'] = 'testuser'
@@ -129,10 +130,11 @@ def test_empty_file_upload(client, mock_db, test_user, mock_empty_csv_file, mock
     assert len(data['failed_files']) == 1
     assert 'Failed to parse CSV' in data['failed_files'][0]
 
-def test_upload_page_displays_user_files(client, mock_db, test_user, mock_processed_file):
+def test_upload_page_displays_user_files(client, mock_db, test_user, mock_processed_file, mock_business):
     """Test that upload page displays user's existing files"""
     # Mock user data and set up session
     mock_db.get_user_by_username.return_value = test_user
+    mock_db.get_business_by_name.return_value = mock_business
     mock_db.get_files_for_business.return_value = [mock_processed_file]
 
     with client.session_transaction() as sess:

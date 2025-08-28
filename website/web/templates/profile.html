@@ -2,12 +2,20 @@
 {% block title %}
 Dashboard
 {% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='profile.css') }}">
+{% endblock %}
+
 {% block content %}
 
 <h1 class="page-title">{{ user.username }}'s Profile Page</h1>
 
 <div class="dashboard-section">
   <h2>My Details</h2>
+  <div class="section-header">
+    <a href="{{ url_for('views.edit_profile_details') }}" class="btn btn-primary btn-sm">Edit</a>
+  </div>
   <ul>
     <li><strong>Username:</strong> {{ user.username }}</li>
     <li><strong>Email:</strong> {{ user.email if user.email else "N/A" }}</li>
@@ -27,7 +35,9 @@ Dashboard
         </li>
       {% endfor %}
     {% else %}
-      <li>No businesses found. <a href="{{ url_for('views.new_business') }}" class="button green">Create a new business</a></li>
+      <li>No businesses found. Create your first business to get started!
+        <a href="{{ url_for('views.new_business') }}" class="button green">Create New Business</a>
+      </li>
     {% endif %}
   </ul>
 </div>

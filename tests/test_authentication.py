@@ -37,13 +37,14 @@ def test_logout_invalidates_session(client, registered_user):
     assert '/login' in response.headers.get('Location', '')
 
 # Test that a logged-in user can access their profile page
-def test_session_persists_across_pages(client, mock_db, test_user):
+def test_session_persists_across_pages(client, mock_db, test_user, mock_business):
     """
     Verify that after logging in, the session persists across multiple
     protected routes and the user receives personalized content.
     """
 
     mock_db.get_user_by_username.return_value = test_user
+    mock_db.get_business_by_name.return_value = mock_business
 
     login_data = {'username': test_user.username, 'password': 'securepassword'}
     client.post('/login', data=login_data, follow_redirects=True)

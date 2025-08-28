@@ -13,7 +13,7 @@ def test_upload_valid_csv(client, mock_db, test_user, mock_csv_file, mock_busine
         sess['username'] = 'testuser'
 
     # Use the filename from the tuple (index 1)   
-    mock_db.get_files_for_user.return_value = [File(business_id="business123", filename=mock_csv_file[1])]
+    mock_db.get_files_for_business.return_value = [File(business_id="business123", filename=mock_csv_file[1])]
 
     data = {'file': [mock_csv_file]}
     response = client.post('/upload_files/test-business', content_type='multipart/form-data', data=data)
@@ -24,9 +24,10 @@ def test_upload_valid_csv(client, mock_db, test_user, mock_csv_file, mock_busine
     assert mock_csv_file[1] in response.json['files']
 
 # Test uploading a non-CSV file
-def test_upload_invalid_file_type(client, mock_db, test_user, mock_txt_file):
+def test_upload_invalid_file_type(client, mock_db, test_user, mock_txt_file, mock_business):
     mock_db.get_user_by_username.return_value = test_user
-    mock_db.get_files_for_user.return_value = []
+    mock_db.get_business_by_name.return_value = mock_business
+    mock_db.get_files_for_business.return_value = []
 
     with client.session_transaction() as sess:
         sess['username'] = test_user.username
@@ -40,9 +41,10 @@ def test_upload_invalid_file_type(client, mock_db, test_user, mock_txt_file):
     assert 'Invalid file' in response.json['failed_files'][0]
 
 # Test uploading both valid and invalid files together
-def test_upload_mixed_files(client, mock_db, test_user, mock_mixed_files):
+def test_upload_mixed_files(client, mock_db, test_user, mock_mixed_files, mock_business):
     mock_db.get_user_by_username.return_value = test_user
-    mock_db.get_files_for_user.return_value = []
+    mock_db.get_business_by_name.return_value = mock_business
+    mock_db.get_files_for_business.return_value = []
 
     with client.session_transaction() as sess:
         sess['username'] = test_user.username
