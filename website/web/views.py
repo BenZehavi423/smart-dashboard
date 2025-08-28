@@ -51,6 +51,10 @@ def upload_files(business_name):
     logger.info(f"Upload files page accessed by user: {user.username}",
                 extra_fields={'user_id': user._id, 'action': 'upload_files_access'})
     
+    business = current_app.db.get_business_by_name(business_name)
+    if not business:
+        return jsonify({'success': False, 'error': 'Business not found'}), 404
+    
     # Handle file upload via AJAX post request
     # POST: process uploaded files
     if request.method == 'POST':
@@ -61,13 +65,7 @@ def upload_files(business_name):
         for file in files:
             if file and file.filename and allowed_file(file.filename):
                 logger.debug(f"Processing file: {file.filename}")
-                try:
-                    # Get business for this business_name to get the business_id
-                    business = current_app.db.get_business_by_name(business_name)
-                    if not business:
-                        # Create a default business if it doesn't exist
-                        business = current_app.db.create_business(user._id, business_name)
-                    
+                try:              
                     #Process the file and attach business_id + preview
                     processed_file = process_file(file, business._id)
                     current_app.db.create_file(processed_file)
@@ -87,11 +85,11 @@ def upload_files(business_name):
         return jsonify({
             'success': len(failed_files) == 0,
             'failed_files': failed_files,
-            'files': [f.filename for f in current_app.db.get_files_for_user(user)]
+            'files': [f.filename for f in current_app.db.get_files_for_business(business)]
         })
 
     #GET: render the upload page with current user's files
-    user_files = current_app.db.get_files_for_user(user)
+    user_files = current_app.db.get_files_for_business(business)
     return render_template('upload_files.html', files=user_files, business_name=business_name)
 
 @views.route('/ask_llm', methods=['POST'])
@@ -224,7 +222,7 @@ def analyze_data(business_name):
                          extra_fields={'user_id': user._id, 'file_id': file_id})
             return jsonify({'success': False, 'error': str(e)}), 500
 
-    return render_template('analyze_data.html', user=user)
+    return render_template('analyze_data.html', user=user, business_name=business_name)
 
 @views.route('/save_generated_plot', methods=['POST'])
 @login_required
@@ -284,10 +282,18 @@ def dashboard():
 def list_user_files():
     username = session.get('username')
     user = current_app.db.get_user_by_username(username)
-    user_files = current_app.db.get_files_for_user(user)
+    
+    # Get all businesses the user has access to (as owner or editor)
+    user_businesses = current_app.db.get_businesses_for_owner(user._id)
+    
+    # Get files from all businesses
+    all_files = []
+    for business in user_businesses:
+        business_files = current_app.db.get_files_for_business(business)
+        all_files.extend(business_files)
 
     logger.info(f"User {username} requested file list",
-                extra_fields={'user_id': user._id, 'files_count': len(user_files)})
+                extra_fields={'user_id': user._id, 'files_count': len(all_files)})
 
     files_payload = [
         {
@@ -295,7 +301,7 @@ def list_user_files():
             "filename": f.filename,
             "upload_date": f.upload_date.isoformat() if f.upload_date else None,
         }
-        for f in user_files
+        for f in all_files
     ]
     return jsonify({'files': files_payload}), 200
 
