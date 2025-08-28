@@ -63,8 +63,14 @@ def upload_files(business_name):
             if file and file.filename and allowed_file(file.filename):
                 logger.debug(f"Processing file: {file.filename}")
                 try:
-                    #Process the file and attach user_id + preview
-                    processed_file = process_file(file, user._id)
+                    # Get business for this business_name to get the business_id
+                    business = current_app.db.get_business_by_name(business_name)
+                    if not business:
+                        # Create a default business if it doesn't exist
+                        business = current_app.db.create_business(user._id, business_name)
+                    
+                    #Process the file and attach business_id + preview
+                    processed_file = process_file(file, business._id)
                     current_app.db.create_file(processed_file)
                     logger.info(f"File {file.filename} uploaded successfully for user {user.username}")
 

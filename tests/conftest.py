@@ -18,6 +18,7 @@ def mock_db():
     
     # Mock file methods
     mock.create_file.return_value = "file_id"
+    mock.get_file.return_value = None
     mock.get_files_for_user.return_value = []
     mock.get_files_for_business.return_value = []
     
@@ -33,10 +34,14 @@ def mock_db():
     # Mock business methods
     mock.get_business_by_id.return_value = None
     mock.get_business_by_name.return_value = None
+    mock.create_business.return_value = None
     mock.update_business.return_value = True
     
     # Mock user profile methods (for backward compatibility)
     mock.get_or_create_user_profile.return_value = None
+    
+    # Mock plot generation methods
+    mock.generate_plot_image.return_value = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=="
     
     return mock
 
@@ -118,7 +123,9 @@ def mock_empty_csv_file():
 
 @pytest.fixture
 def mock_processed_file():
-    return File(business_id="business123", filename="test.csv")
+    file = File(business_id="business123", filename="test.csv")
+    file.preview = [{"name": "John", "age": 25}, {"name": "Jane", "age": 30}]
+    return file
 
 @pytest.fixture
 def mock_multiple_csv_files():

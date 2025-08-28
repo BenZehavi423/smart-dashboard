@@ -29,6 +29,6 @@ def process_file(file, business_id):
 
     # Attach preview manually (not part of original constructor)
     new_file.preview = preview
-    logger.info(f"File object created for {filename} with user_id={user_id}")
+    logger.info(f"File object created for {filename} with business_id={business_id}")
 
     return new_file

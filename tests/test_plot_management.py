@@ -221,52 +221,47 @@ def test_analyze_data_page_accessible_when_logged_in(client, mock_db, test_user,
     assert response.status_code == 200
     assert b'Analyze My Data' in response.data
 
-def test_analyze_data_save_plots_success(client, mock_db, test_user, mock_business):
-    """Test successful saving of new plots via AJAX"""
+def test_analyze_data_save_plots_success(client, mock_db, test_user, mock_business, mock_processed_file):
+    """Test successful plot generation via AJAX"""
     mock_db.get_user_by_username.return_value = test_user
     mock_db.get_business_by_id.return_value = mock_business
     mock_db.get_business_by_name.return_value = mock_business
-    mock_db.create_plot.return_value = "new_plot_id"
+    mock_db.get_file.return_value = mock_processed_file
     
-    with client.session_transaction() as sess:
-        sess['username'] = 'testuser'
-    
-    data = {
-        'new_plots': [
-            {
-                'image_name': 'Workflow Test Plot',
-                'image': 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==',
-                'save_to_business': True
-            }
-        ]
-    }
-    
-    response = client.post('/analyze_data/test-business',
-                          data=json.dumps(data),
-                          content_type='application/json')
-    assert response.status_code == 200
-    result = response.get_json()
-    assert result['success'] == True
-    assert result['saved_count'] == 1
+    with patch('website.web.views.generate_plot_image') as mock_generate:
+        mock_generate.return_value = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=="
+        
+        with client.session_transaction() as sess:
+            sess['username'] = 'testuser'
+        
+        data = {
+            'file_id': 'test_file_id',
+            'prompt': 'Create a bar chart of sales data'
+        }
+        
+        response = client.post('/analyze_data/test-business',
+                              data=json.dumps(data),
+                              content_type='application/json')
+        assert response.status_code == 200
+        result = response.get_json()
+        assert result['success'] == True
 
-def test_analyze_data_save_plots_failure(client, mock_db, test_user, mock_business):
-    """Test failed saving of new plots via AJAX"""
+def test_analyze_data_save_plots_failure(client, mock_db, test_user, mock_business, mock_processed_file):
+    """Test failed plot generation via AJAX"""
     mock_db.get_user_by_username.return_value = test_user
     mock_db.get_business_by_id.return_value = mock_business
     mock_db.get_business_by_name.return_value = mock_business
-    mock_db.create_plot.side_effect = Exception("Database error")
+    mock_db.get_file.return_value = mock_processed_file
     
-    with client.session_transaction() as sess:
-        sess['username'] = 'testuser'
+    with patch('website.web.views.generate_plot_image') as mock_generate:
+        mock_generate.side_effect = Exception("Plot generation failed")
+        
+        with client.session_transaction() as sess:
+            sess['username'] = 'testuser'
     
     data = {
-        'new_plots': [
-            {
-                'image_name': 'Test Plot',
-                'image': 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==',
-                'save_to_business': True
-            }
-        ]
+        'file_id': 'test_file_id',
+        'prompt': 'Create a bar chart of sales data'
     }
     
     response = client.post('/analyze_data/test-business',
@@ -345,60 +340,59 @@ def test_edit_plots_missing_data(client, mock_db, test_user, mock_business):
     assert result['success'] == False
 
 # ----- Integration tests -----
-def test_full_plot_workflow(client, mock_db, test_user, mock_business):
+def test_full_plot_workflow(client, mock_db, test_user, mock_business, mock_processed_file):
     """Test the full workflow: create plots, edit presentation, view in business page"""
     mock_db.get_user_by_username.return_value = test_user
     mock_db.get_business_by_id.return_value = mock_business
     mock_db.get_business_by_name.return_value = mock_business
     mock_db.get_user_by_id.return_value = test_user
+    mock_db.get_file.return_value = mock_processed_file
     mock_db.create_plot.return_value = "new_plot_id"
     mock_db.update_multiple_plots.return_value = True
     mock_db.update_plot_presentation_order.return_value = True
     
-    with client.session_transaction() as sess:
-        sess['username'] = 'testuser'
-    
-    # Step 1: Create new plots
-    create_data = {
-        'new_plots': [
-            {
-                'image_name': 'Workflow Test Plot',
-                'image': 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==',
-                'save_to_business': True
-            }
+    with patch('website.web.views.generate_plot_image') as mock_generate:
+        mock_generate.return_value = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=="
+        
+        with client.session_transaction() as sess:
+            sess['username'] = 'testuser'
+        
+        # Step 1: Generate plot
+        create_data = {
+            'file_id': 'test_file_id',
+            'prompt': 'Create a bar chart of sales data'
+        }
+        
+        response = client.post('/analyze_data/test-business',
+                              data=json.dumps(create_data),
+                              content_type='application/json')
+        assert response.status_code == 200
+        create_result = response.get_json()
+        assert create_result['success'] == True
+        
+        # Step 2: Edit plot presentation
+        edit_data = {
+            'plot_updates': [
+                {'plot_id': 'new_plot_id', 'is_presented': True}
+            ],
+            'plot_order': ['new_plot_id']
+        }
+        
+        response = client.post('/edit_plots/test-business',
+                              data=json.dumps(edit_data),
+                              content_type='application/json')
+        assert response.status_code == 200
+        edit_result = response.get_json()
+        assert edit_result['success'] == True
+        
+        # Step 3: View in business page (should show the plot)
+        mock_db.get_presented_plots_for_business_ordered.return_value = [
+            Plot(image_name="Workflow Test Plot", image="data", files=[], business_id="business123", _id="new_plot_id", is_presented=True)
         ]
-    }
-    
-    response = client.post('/analyze_data/test-business',
-                          data=json.dumps(create_data),
-                          content_type='application/json')
-    assert response.status_code == 200
-    create_result = response.get_json()
-    assert create_result['success'] == True
-    
-    # Step 2: Edit plot presentation
-    edit_data = {
-        'plot_updates': [
-            {'plot_id': 'new_plot_id', 'is_presented': True}
-        ],
-        'plot_order': ['new_plot_id']
-    }
-    
-    response = client.post('/edit_plots/test-business',
-                          data=json.dumps(edit_data),
-                          content_type='application/json')
-    assert response.status_code == 200
-    edit_result = response.get_json()
-    assert edit_result['success'] == True
-    
-    # Step 3: View in business page (should show the plot)
-    mock_db.get_presented_plots_for_business_ordered.return_value = [
-        Plot(image_name="Workflow Test Plot", image="data", files=[], business_id="business123", _id="new_plot_id", is_presented=True)
-    ]
-    
-    response = client.get('/business_page/test-business')
-    assert response.status_code == 200
-    assert b'Workflow Test Plot' in response.data
+        
+        response = client.get('/business_page/test-business')
+        assert response.status_code == 200
+        assert b'Workflow Test Plot' in response.data
 
 # ----- Modal functionality tests -----
 def test_edit_plots_no_changes_modal(client, mock_db, test_user, mock_plots_for_business, mock_business):
