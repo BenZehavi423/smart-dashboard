@@ -13,6 +13,9 @@ Dashboard
 
 <div class="dashboard-section">
   <h2>My Details</h2>
+  <div class="section-header">
+    <a href="{{ url_for('views.edit_profile_details') }}" class="btn btn-primary btn-sm">Edit</a>
+  </div>
   <ul>
     <li><strong>Username:</strong> {{ user.username }}</li>
     <li><strong>Email:</strong> {{ user.email if user.email else "N/A" }}</li>

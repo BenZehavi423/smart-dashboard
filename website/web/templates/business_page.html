@@ -14,6 +14,11 @@ Dashboard
 
 <div class="dashboard-section">
   <h2>Details</h2>
+  {% if user._id in business.editors %}
+    <div class="section-header">
+      <a href="{{ url_for('views.edit_business_details', business_name=business.name) }}" class="btn btn-primary btn-sm">Edit</a>
+    </div>
+  {% endif %}
   <ul>
     <li><strong>Name:</strong> {{ business.name }}</li>
     {% if business.address %} <li><strong>Address:</strong> {{ business.address }}</li> {% endif %}

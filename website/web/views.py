@@ -544,3 +544,69 @@ def new_business():
     
     # GET request - show the form
     return render_template('new_business.html')
+
+@views.route('/edit_business_details/<business_name>', methods=['GET', 'POST'])
+@login_required
+def edit_business_details(business_name):
+    username = session.get('username')
+    user = current_app.db.get_user_by_username(username)
+    
+    # Get business by name
+    business = current_app.db.get_business_by_name(business_name)
+    if not business:
+        return render_template('error.html', error='Business not found'), 404
+    
+    # Check if user is an editor
+    if user._id not in business.editors:
+        return render_template('error.html', error='You do not have permission to edit this business'), 403
+    
+    if request.method == 'POST':
+        # Update business details
+        address = request.form.get('address', '').strip()
+        phone = request.form.get('phone', '').strip()
+        email = request.form.get('email', '').strip()
+        
+        # Update business in database
+        update_data = {}
+        if address != business.address:
+            update_data['address'] = address if address else None
+        if phone != business.phone:
+            update_data['phone'] = phone if phone else None
+        if email != business.email:
+            update_data['email'] = email if email else None
+        
+        if update_data:
+            current_app.db.update_business(business._id, update_data)
+            logger.info(f"User {username} updated business {business_name} details",
+                       extra_fields={'user_id': user._id, 'business_name': business_name, 'updates': update_data})
+        
+        return redirect(url_for('views.business_page', business_name=business_name))
+    
+    return render_template('edit_business_details.html', business=business, business_name=business_name)
+
+@views.route('/edit_profile_details', methods=['GET', 'POST'])
+@login_required
+def edit_profile_details():
+    username = session.get('username')
+    user = current_app.db.get_user_by_username(username)
+    
+    if request.method == 'POST':
+        # Update user details
+        email = request.form.get('email', '').strip()
+        phone = request.form.get('phone', '').strip()
+        
+        # Update user in database
+        update_data = {}
+        if email != user.email:
+            update_data['email'] = email if email else None
+        if phone != user.phone:
+            update_data['phone'] = phone if phone else None
+        
+        if update_data:
+            current_app.db.update_user(user._id, update_data)
+            logger.info(f"User {username} updated their profile",
+                       extra_fields={'user_id': user._id, 'updates': update_data})
+        
+        return redirect(url_for('views.profile'))
+    
+    return render_template('edit_profile_details.html', user=user)
