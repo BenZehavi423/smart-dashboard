@@ -22,9 +22,11 @@ def test_upload_page_with_logged_in_user(client, mock_db, test_user):
     assert b'Choose Files to Upload' in response.data
     assert b'Back to Business Page' in response.data
 
-def test_file_validation_csv_allowed(client, mock_db, test_user, mock_csv_file, mock_processed_file):
+def test_file_validation_csv_allowed(client, mock_db, test_user, mock_csv_file, mock_processed_file, mock_business):
     """Test that CSV files are allowed for upload"""
     mock_db.get_user_by_username.return_value = test_user
+    mock_db.get_business_by_name.return_value = mock_business
+    mock_db.create_business.return_value = mock_business
     
     with client.session_transaction() as sess:
         sess['username'] = 'testuser'
@@ -59,9 +61,11 @@ def test_file_validation_non_csv_rejected(client, mock_db, test_user, mock_txt_f
     assert len(data['failed_files']) == 1
     assert 'Invalid file: test.txt' in data['failed_files'][0]
 
-def test_multiple_files_upload(client, mock_db, test_user, mock_multiple_csv_files):
+def test_multiple_files_upload(client, mock_db, test_user, mock_multiple_csv_files, mock_business):
     """Test uploading multiple files at once"""
     mock_db.get_user_by_username.return_value = test_user
+    mock_db.get_business_by_name.return_value = mock_business
+    mock_db.create_business.return_value = mock_business
     
     with client.session_transaction() as sess:
         sess['username'] = 'testuser'
@@ -81,9 +85,11 @@ def test_multiple_files_upload(client, mock_db, test_user, mock_multiple_csv_fil
         assert data['success'] == True
         assert len(data['failed_files']) == 0
 
-def test_mixed_files_upload_some_valid_some_invalid(client, mock_db, test_user, mock_mixed_files):
+def test_mixed_files_upload_some_valid_some_invalid(client, mock_db, test_user, mock_mixed_files, mock_business):
     """Test uploading mix of valid and invalid files"""
     mock_db.get_user_by_username.return_value = test_user
+    mock_db.get_business_by_name.return_value = mock_business
+    mock_db.create_business.return_value = mock_business
     
     with client.session_transaction() as sess:
         sess['username'] = 'testuser'
@@ -103,9 +109,11 @@ def test_mixed_files_upload_some_valid_some_invalid(client, mock_db, test_user, 
         assert len(data['failed_files']) == 1
         assert 'Invalid file: invalid.txt' in data['failed_files'][0]
 
-def test_empty_file_upload(client, mock_db, test_user, mock_empty_csv_file):
+def test_empty_file_upload(client, mock_db, test_user, mock_empty_csv_file, mock_business):
     """Test uploading an empty file"""
     mock_db.get_user_by_username.return_value = test_user
+    mock_db.get_business_by_name.return_value = mock_business
+    mock_db.create_business.return_value = mock_business
     
     with client.session_transaction() as sess:
         sess['username'] = 'testuser'

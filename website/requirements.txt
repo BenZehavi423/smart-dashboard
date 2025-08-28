@@ -10,3 +10,4 @@ pytest
 pandas
 colorama
 requests
+matplotlib

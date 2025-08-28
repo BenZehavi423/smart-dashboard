@@ -1,222 +1,154 @@
-///////////// Analyze Data Page JavaScript functionality /////////////
-// TODO: analyze_data
-
-let uploadedImages = [];
-
-// Initialize the page
 document.addEventListener('DOMContentLoaded', function() {
-    setupFileUpload();
-    setupDragAndDrop();
-});
+    const fileSelect = document.getElementById('file-select');
+    const generateBtn = document.getElementById('generate-plot-btn');
+    const analysisPrompt = document.getElementById('analysis-prompt');
 
-function setupFileUpload() {
-    const fileInput = document.getElementById('imageUpload');
-    fileInput.addEventListener('change', handleFileSelect);
-}
+    const resultSection = document.getElementById('plot-result-section');
+    const loadingSpinner = document.getElementById('plot-loading');
+    const plotOutput = document.getElementById('plot-output');
+    const plotActions = document.getElementById('plot-actions');
+    const plotNameInput = document.getElementById('plot-name-input');
+    const savePlotBtn = document.getElementById('save-plot-btn');
+    const generateAnotherBtn = document.getElementById('generate-another-btn');
 
-function setupDragAndDrop() {
-    const dropzone = document.querySelector('.upload-dropzone');
-    
-    dropzone.addEventListener('dragover', function(e) {
-        e.preventDefault();
-        dropzone.classList.add('dragover');
-    });
-    
-    dropzone.addEventListener('dragleave', function(e) {
-        e.preventDefault();
-        dropzone.classList.remove('dragover');
-    });
-    
-    dropzone.addEventListener('drop', function(e) {
-        e.preventDefault();
-        dropzone.classList.remove('dragover');
-        
-        const files = e.dataTransfer.files;
-        handleFiles(files);
-    });
-}
+    let generatedPlotData = null; // To store the base64 image data
 
-function handleFileSelect(event) {
-    const files = event.target.files;
-    handleFiles(files);
-}
-
-function handleFiles(files) {
-    const imageFiles = Array.from(files).filter(file => 
-        file.type.startsWith('image/')
-    );
-    
-    if (imageFiles.length === 0) {
-        alert('Please select image files only.');
-        return;
-    }
-    
-    imageFiles.forEach(file => {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            const imageData = e.target.result;
-            addImageToPreview(file.name, imageData);
-        };
-        reader.readAsDataURL(file);
-    });
-    
-    // Show preview section
-    document.getElementById('imagesPreview').style.display = 'block';
-}
-
-function addImageToPreview(originalName, imageData) {
-    const imageId = 'img_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-    
-    const imageCard = document.createElement('div');
-    imageCard.className = 'image-card';
-    imageCard.id = imageId;
-    
-    // Generate a default name from the original filename
-    const defaultName = originalName.replace(/\.[^/.]+$/, ""); // Remove extension
-    
-    imageCard.innerHTML = `
-        <div class="image-preview">
-            <img src="${imageData}" alt="${defaultName}">
-        </div>
-        <div class="image-controls">
-            <input type="text" class="image-name-input" value="${defaultName}" placeholder="Enter image name">
-            <div class="save-checkbox">
-                <input type="checkbox" id="save_${imageId}" checked>
-                <label for="save_${imageId}">Save to Profile</label>
-            </div>
-            <button class="remove-image" onclick="removeImage('${imageId}')">Remove</button>
-        </div>
-    `;
-    
-    document.getElementById('imagesGrid').appendChild(imageCard);
-    
-    // Store image data
-    uploadedImages.push({
-        id: imageId,
-        originalName: originalName,
-        imageData: imageData,
-        name: defaultName,
-        saveToProfile: true
-    });
-    
-    // Add event listeners for name changes and checkbox changes
-    const nameInput = imageCard.querySelector('.image-name-input');
-    const saveCheckbox = imageCard.querySelector('input[type="checkbox"]');
-    
-    nameInput.addEventListener('input', function() {
-        updateImageData(imageId, 'name', this.value);
-    });
-    
-    saveCheckbox.addEventListener('change', function() {
-        updateImageData(imageId, 'saveToProfile', this.checked);
-    });
-}
-
-function updateImageData(imageId, field, value) {
-    const imageIndex = uploadedImages.findIndex(img => img.id === imageId);
-    if (imageIndex !== -1) {
-        uploadedImages[imageIndex][field] = value;
-    }
-}
-
-function removeImage(imageId) {
-    // Remove from DOM
-    const imageCard = document.getElementById(imageId);
-    if (imageCard) {
-        imageCard.remove();
-    }
-    
-    // Remove from data array
-    uploadedImages = uploadedImages.filter(img => img.id !== imageId);
-    
-    // Hide preview section if no images left
-    if (uploadedImages.length === 0) {
-        document.getElementById('imagesPreview').style.display = 'none';
-    }
-}
-
-function saveSelectedImages() {
-    const imagesToSave = uploadedImages.filter(img => img.saveToProfile);
-    
-    if (imagesToSave.length === 0) {
-        alert('Please select at least one image to save.');
-        return;
-    }
-    
-    // Prepare data for server
-    const newPlots = imagesToSave.map(img => ({
-        image_name: img.name,
-        image: img.imageData,
-        files: [], // Empty for now, will be populated when analysis is implemented
-        save_to_business: true
-    }));
-    
-    // Show loading state
-    const saveButton = document.querySelector('.save-actions .button.blue');
-    const originalText = saveButton.textContent;
-    saveButton.textContent = 'Saving...';
-    saveButton.disabled = true;
-    
-    // Send to server
-    fetch('/analyze_data', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-            new_plots: newPlots
-        })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            alert(`Successfully saved ${data.saved_count} image(s) to your business page!`);
-            // Redirect back to business page
-            window.location.href = '/business_page';
-        } else {
-            alert('Error saving images. Please try again.');
+    // --- Step 1: Load User's Files into Dropdown ---
+    async function loadUserFiles() {
+        try {
+            const response = await fetch('/dashboard/files');
+            if (!response.ok) throw new Error('Failed to fetch files.');
+            
+            const data = await response.json();
+            fileSelect.innerHTML = '<option value="">-- Select a file --</option>'; // Clear loading text
+            
+            if (data.files && data.files.length > 0) {
+                // Sort by most recent upload_date (desc)
+                data.files
+                    .sort((a, b) => (b.upload_date || '').localeCompare(a.upload_date || ''))
+                    .forEach(file => {
+                        const option = document.createElement('option');
+                        option.value = file._id;
+                        option.textContent = file.filename;
+                        fileSelect.appendChild(option);
+                    });
+            } else {
+                fileSelect.innerHTML = '<option value="">No CSV files found. Please upload one.</option>';
+                generateBtn.disabled = true;
+            }
+        } catch (error) {
+            console.error("Error loading files:", error);
+            fileSelect.innerHTML = '<option value="">Error loading files</option>';
         }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        alert('Error saving images. Please try again.');
-    })
-    .finally(() => {
-        // Restore button state
-        saveButton.textContent = originalText;
-        saveButton.disabled = false;
-    });
-}
+    }
 
-function clearAllImages() {
-    if (uploadedImages.length === 0) {
-        return;
-    }
-    
-    if (confirm('Are you sure you want to clear all uploaded images?')) {
-        // Clear DOM
-        document.getElementById('imagesGrid').innerHTML = '';
-        
-        // Clear data
-        uploadedImages = [];
-        
-        // Hide preview section
-        document.getElementById('imagesPreview').style.display = 'none';
-        
-        // Reset file input
-        document.getElementById('imageUpload').value = '';
-    }
-}
+    // --- Step 2: Handle Plot Generation ---
+    async function handleGeneratePlot() {
+        const fileId = fileSelect.value;
+        const prompt = analysisPrompt.value.trim();
 
-// Future: Function to handle text analysis requests
-function generateAnalysis() {
-    const analysisText = document.querySelector('.analysis-request textarea').value;
-    
-    if (!analysisText.trim()) {
-        alert('Please describe the analysis you want.');
-        return;
+        if (!fileId) {
+            alert('Please select a file.');
+            return;
+        }
+        if (!prompt) {
+            alert('Please describe the plot you want to generate.');
+            return;
+        }
+
+        // Show loading state
+        document.querySelector('.analysis-request-section').style.display = 'none';
+        resultSection.style.display = 'block';
+        loadingSpinner.style.display = 'block';
+        plotOutput.style.display = 'none';
+        plotActions.style.display = 'none';
+
+        try {
+            const response = await fetch('/analyze_data', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ file_id: fileId, prompt: prompt })
+            });
+
+            const data = await response.json();
+
+            if (!response.ok || data.success === false) {
+                throw new Error(data.error || 'Failed to generate plot.');
+            }
+            
+            // Display the generated plot
+            generatedPlotData = data.plot_image; // Store base64 data
+            plotOutput.innerHTML = `<img src="${generatedPlotData}" alt="Generated Plot">`;
+            plotNameInput.value = `Plot based on ${fileSelect.options[fileSelect.selectedIndex].text}`;
+
+
+        } catch (error) {
+            console.error("Error generating plot:", error);
+            plotOutput.innerHTML = `<p style="color: red;"><strong>Error:</strong> ${error.message}</p>`;
+        } finally {
+            // Hide loading spinner and show output/actions
+            loadingSpinner.style.display = 'none';
+            plotOutput.style.display = 'block';
+            plotActions.style.display = 'flex';
+        }
+    }
+
+    // --- Step 3: Handle Saving the Plot ---
+    async function handleSavePlot() {
+        const plotName = plotNameInput.value.trim();
+        if (!plotName) {
+            alert('Please enter a name for the plot.');
+            return;
+        }
+        if (!generatedPlotData) {
+            alert('No plot data available to save.');
+            return;
+        }
+
+        savePlotBtn.textContent = 'Saving...';
+        savePlotBtn.disabled = true;
+
+        try {
+            const response = await fetch('/save_generated_plot', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    image_name: plotName,
+                    image_data: generatedPlotData,
+                    based_on_file: fileSelect.value
+                })
+            });
+
+            const data = await response.json();
+
+            if (!response.ok || !data.success) {
+                throw new Error(data.error || 'Failed to save the plot.');
+            }
+
+            // On success, redirect to profile page
+            window.location.href = '/profile?success=plot_saved';
+
+        } catch (error) {
+            console.error("Error saving plot:", error);
+            alert(`Error: ${error.message}`);
+            savePlotBtn.textContent = 'Save to Profile';
+            savePlotBtn.disabled = false;
+        }
     }
     
-    // This will be implemented in the future
-    alert('Text analysis feature will be implemented in the future.');
-} 
+    // --- Step 4: Reset the UI ---
+    function resetUI() {
+        document.querySelector('.analysis-request-section').style.display = 'block';
+        resultSection.style.display = 'none';
+        analysisPrompt.value = '';
+        generatedPlotData = null;
+    }
+
+    // --- Attach Event Listeners ---
+    generateBtn.addEventListener('click', handleGeneratePlot);
+    savePlotBtn.addEventListener('click', handleSavePlot);
+    generateAnotherBtn.addEventListener('click', resetUI);
+    
+    // --- Initial Load ---
+    loadUserFiles();
+});

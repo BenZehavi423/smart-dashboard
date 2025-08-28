@@ -5,6 +5,8 @@ from .csv_processor import process_file
 from .models import Plot
 from .logger import logger
 import requests
+from .llm_client import generate_insights_for_file
+from .plot_generator import generate_plot_image
 
 # Blueprint lets us organize routes into different files
 # we don't have to put all routes in the "views.py" module
@@ -43,28 +45,43 @@ def upload_files(business_name):
     # Check if user is logged in
     # If not, redirect to login page
     if 'username' not in session:
+        logger.warning("Unauthorized access to upload_files")
         return redirect(url_for('auth.login'))
+    
     user = current_app.db.get_user_by_username(session['username'])
-
+    logger.info(f"Upload files page accessed by user: {user.username}",
+                extra_fields={'user_id': user._id, 'action': 'upload_files_access'})
+    
     # Handle file upload via AJAX post request
     # POST: process uploaded files
     if request.method == 'POST':
         files = request.files.getlist('file')
+        logger.info(f"User {user.username} uploading {len(files)} files")
         failed_files = []
 
         for file in files:
             if file and file.filename and allowed_file(file.filename):
+                logger.debug(f"Processing file: {file.filename}")
                 try:
-                    #Process the file and attach user_id + preview
-                    processed_file = process_file(file, user._id)
+                    # Get business for this business_name to get the business_id
+                    business = current_app.db.get_business_by_name(business_name)
+                    if not business:
+                        # Create a default business if it doesn't exist
+                        business = current_app.db.create_business(user._id, business_name)
+                    
+                    #Process the file and attach business_id + preview
+                    processed_file = process_file(file, business._id)
                     current_app.db.create_file(processed_file)
+                    logger.info(f"File {file.filename} uploaded successfully for user {user.username}")
 
                 except Exception as e:
                     # If processing fails, log the error
+                    logger.error(f"Failed to process file {file.filename} for user {user.username}: {e}")
                     failed_files.append(f"{file.filename}: {str(e)}")
 
             # If file is not valid, log the error
             else:
+                logger.warning(f"Invalid file upload attempt by user {user.username}: {getattr(file, 'filename', 'unknown')}")
                 failed_files.append(f"Invalid file: {getattr(file, 'filename', 'unknown')}")
 
         # Return JSON response to the frontend
@@ -189,60 +206,143 @@ def analyze_data(business_name):
     user = current_app.db.get_user_by_username(username)
     business = current_app.db.get_business_by_id(user._id)
 
-    logger.info(f"Analyze data page accessed by user: {username}",
-                extra_fields={'user_id': user._id, 'action': 'analyze_data_access'})
-
     if request.method == 'POST':
-        # Handle AJAX request for saving new plots
+        # This now handles the plot generation request from the new frontend
         data = request.get_json()
-        new_plots = data.get('new_plots', [])
+        file_id = data.get('file_id')
+        prompt = data.get('prompt')
 
-        logger.info(f"User {username} attempting to save {len(new_plots)} new plots",
-                    extra_fields={'user_id': user._id, 'plots_count': len(new_plots)})
+        if not file_id or not prompt:
+            return jsonify({'success': False, 'error': 'File ID and prompt are required.'}), 400
+
         try:
-            # Get user profile to determine the next order numbers
-            profile = current_app.db.get_business_by_name(business_name)
-            current_order = len(profile.presented_plot_order)
+            # Call our new plot generation function
+            plot_image_b64 = generate_plot_image(file_id, prompt)
+            return jsonify({'success': True, 'plot_image': plot_image_b64})
 
-            saved_plot_ids = []
-            for i, plot_data in enumerate(new_plots):
-                if plot_data.get('save_to_business', False):
-                    # Create new Plot object
-                    new_plot = Plot(
-                        image_name=plot_data['image_name'],
-                        image=plot_data['image'],
-                        files=plot_data.get('files', []),
-                        business_id=business._id,
-                        is_presented=True
-                    )
-                    # Save to database
-                    plot_id = current_app.db.create_plot(new_plot)
-                    saved_plot_ids.append(plot_id)
-                    logger.info(f"Plot saved successfully: {plot_data['image_name']}",
-                                extra_fields={'user_id': user._id, 'plot_id': plot_id, 'plot_name': plot_data['image_name']})
-                    # Add to user profile order (at the end)
-                    profile.presented_plot_order.append(plot_id)
-            # Update user profile with new order
-            if saved_plot_ids:
-                current_app.db.update_business(user._id, {
-                    "presented_plot_order": profile.presented_plot_order
-                })
-                logger.info(f"User profile updated with {len(saved_plot_ids)} new plots",
-                            extra_fields={'user_id': user._id, 'saved_count': len(saved_plot_ids)})
-            return jsonify({
-                'success': True,
-                'saved_count': len(saved_plot_ids)
-            })
         except Exception as e:
-            logger.error(f"Failed to save plots: {e}", extra_fields={'user_id': user._id})
+            logger.error(f"Failed to generate plot for user {username}: {e}",
+                         extra_fields={'user_id': user._id, 'file_id': file_id})
             return jsonify({'success': False, 'error': str(e)}), 500
 
-    # GET: render the analyze data page
+    return render_template('analyze_data.html', user=user)
+
+@views.route('/save_generated_plot', methods=['POST'])
+@login_required
+def save_generated_plot():
+    username = session.get('username')
+    user = current_app.db.get_user_by_username(username)
+    data = request.get_json()
+
+    image_name = data.get('image_name')
+    image_data = data.get('image_data')
+    based_on_file = data.get('based_on_file')
+
+    if not all([image_name, image_data, based_on_file]):
+        return jsonify({'success': False, 'error': 'Missing required data to save plot.'}), 400
+
+    try:
+        # Create a new Plot object and save it to the database
+        new_plot = Plot(
+            image_name=image_name,
+            image=image_data,
+            files=[based_on_file],
+            user_id=user._id,
+            is_presented=True # New plots are presented by default
+        )
+        plot_id = current_app.db.create_plot(new_plot)
+
+        # Add the new plot to the user's presentation order
+        profile = current_app.db.get_or_create_user_profile(user._id)
+        profile.presented_plot_order.append(plot_id)
+        current_app.db.update_user_profile(user._id, {"presented_plot_order": profile.presented_plot_order})
+
+        logger.info(f"User {username} saved a new plot: {image_name}", extra_fields={'user_id': user._id, 'plot_id': plot_id})
+        return jsonify({'success': True, 'plot_id': plot_id})
+
+    except Exception as e:
+        logger.error(f"Failed to save plot for user {username}: {e}", extra_fields={'user_id': user._id})
+        return jsonify({'success': False, 'error': 'An internal error occurred.'}), 500
+
+@views.route('/dashboard', methods=['GET'])
+@login_required
+def dashboard():
+    username = session.get('username')
+    user = current_app.db.get_user_by_username(username)
+
+    logger.info(f"Dashboard page accessed by user: {username}",
+                extra_fields={'user_id': user._id, 'action': 'dashboard_access'})
+    
+    dashboard_doc = current_app.db.get_dashboard_for_user(user._id)
+
+    return render_template('dashboard.html', user=user, dashboard=dashboard_doc), 200
+
+
+
+
+@views.route('/dashboard/files', methods=['GET'])
+@login_required
+def list_user_files():
+    username = session.get('username')
+    user = current_app.db.get_user_by_username(username)
     user_files = current_app.db.get_files_for_user(user)
-    logger.info(f"Analyze data page rendered for user {username} with {len(user_files)} files",
+
+    logger.info(f"User {username} requested file list",
                 extra_fields={'user_id': user._id, 'files_count': len(user_files)})
 
-    return render_template('analyze_data.html', user=user, files=user_files, business_name=business_name)
+    files_payload = [
+        {
+            "_id": f._id,
+            "filename": f.filename,
+            "upload_date": f.upload_date.isoformat() if f.upload_date else None,
+        }
+        for f in user_files
+    ]
+    return jsonify({'files': files_payload}), 200
+
+
+
+
+
+@views.route('/dashboard/create', methods=['POST'])
+@login_required
+def create_dashboard():
+    # Identify current user
+    username = session.get('username')
+    user = current_app.db.get_user_by_username(username)
+
+    payload = request.get_json(silent=True) or {}
+    logger.info(f"User {username} initiated dashboard creation",
+                extra_fields={'user_id': user._id, 'payload': payload})
+    
+    file_id = payload.get('file_id') or request.form.get('file_id')
+    if not file_id:
+        logger.warning(f"User {username} tried to create dashboard without selecting file",
+                       extra_fields={'user_id': user._id})
+        return jsonify({"success": False, "error": "Please select a file to generate a dashboard."}), 400
+
+    f = current_app.db.get_file(file_id)
+    if not f or f.user_id != user._id:
+        logger.warning(f"Unauthorized dashboard creation attempt by {username}",
+                       extra_fields={'user_id': user._id, 'file_id': file_id})
+        return jsonify({"success": False, "error": "You are not authorized to use the selected file."}), 403
+
+    try:
+        # Generate insights from available file (preview-based prompt to LLM)
+        file_id, insights = generate_insights_for_file(file_id) 
+
+        # Persist a new dashboard entry (we keep history by creating a new doc each time)
+        current_app.db.create_dashboard(user_id=user._id, file_id=file_id, insights=insights)
+
+        logger.info("Dashboard created", extra_fields={'user_id': user._id, 'file_id': file_id})
+        flash("Dashboard created successfully", "success")
+
+        return jsonify({"success": True, "redirect": url_for('views.dashboard')}), 200
+    
+    except Exception as e:
+        logger.error(f"Failed to create dashboard: {e}", extra_fields={'user_id': user._id, 'file_id': file_id})
+        return jsonify({"success": False, "error": "An unexpected error occurred while creating the dashboard."}), 500
+
 
 @views.route('/business_page/<business_name>')
 @login_required

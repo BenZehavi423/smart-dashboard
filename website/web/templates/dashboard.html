@@ -1,0 +1,207 @@
+{% extends 'base.html' %}
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="container">
+  <div class="toolbar">
+    <h1 class="page-title">Dashboard</h1>
+    <button id="create-dashboard-btn" class="button blue" type="button">Create dashboard</button>
+  </div>
+
+  {% if dashboard and dashboard.insights %}
+    <div class="insights-grid">
+      {% for text in dashboard.insights %}
+        <div class="insight-card">
+          <h3>Insight</h3>
+          <p>{{ text }}</p>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p>No dashboard has been created yet.</p>
+  {% endif %}
+</div>
+
+<!-- Modal: file selection -->
+<div id="file-select-modal" class="sd-modal" aria-hidden="true">
+  <div class="sd-modal__backdrop" data-close-modal></div>
+  <div class="sd-modal__dialog" role="dialog" aria-modal="true" aria-labelledby="file-select-title">
+    <div class="sd-modal__header">
+      <h3 id="file-select-title">Select a file to build your dashboard</h3>
+      <button class="sd-modal__close" type="button" data-close-modal aria-label="Close">×</button>
+    </div>
+
+    <div class="sd-modal__body">
+      <div id="file-list-container">
+        <label for="file-select">Your files:</label>
+        <select id="file-select" name="file_id"></select>
+        <div id="file-empty-note" style="display:none;margin-top:.5rem;">No files found. Please upload a CSV.</div>
+      </div>
+      <div id="file-meta" style="margin-top:.5rem;"></div>
+      <div id="file-error" style="color:#b00020;margin-top:.5rem;display:none;"></div>
+    </div>
+
+    <div class="sd-modal__footer">
+      <button id="confirm-create-dashboard" type="button" class="button blue">Create</button>
+      <button type="button" data-close-modal class="button">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<style>
+/* Layout */
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .75rem;
+  margin-bottom: 1rem;
+}
+.page-title { margin: 0; }
+
+/* Insights grid */
+.insights-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 14px;
+  margin-top: 16px;
+}
+.insight-card {
+  background: #fff;
+  border: 1px solid #e6e6e6;
+  border-radius: 12px;
+  padding: 14px;
+  box-shadow: 0 2px 6px rgba(0,0,0,.06);
+}
+.insight-card h3 { margin: 0 0 8px; font-size: 16px; }
+.insight-card p { margin: 0; line-height: 1.4; }
+
+/* Modal */
+.sd-modal { position: fixed; inset: 0; display: none; z-index: 1000; }
+.sd-modal[aria-hidden="false"] { display: block; }
+.sd-modal__backdrop { position: absolute; inset: 0; background: rgba(0,0,0,.4); }
+.sd-modal__dialog { position: relative; margin: 6rem auto; max-width: 520px; background: #fff; border-radius: 12px; padding: 1rem; box-shadow: 0 10px 30px rgba(0,0,0,.2); }
+.sd-modal__header, .sd-modal__footer { display: flex; align-items: center; justify-content: space-between; gap: .5rem; }
+.sd-modal__body { margin: .75rem 0; }
+.sd-modal__close { background: transparent; border: none; font-size: 1.5rem; line-height: 1; cursor: pointer; }
+</style>
+
+<script>
+/* All comments in English only */
+(function () {
+  const btnOpen = document.getElementById('create-dashboard-btn');
+  const modal = document.getElementById('file-select-modal');
+  const closeEls = modal.querySelectorAll('[data-close-modal]');
+  const selectEl = document.getElementById('file-select');
+  const emptyNote = document.getElementById('file-empty-note');
+  const confirmBtn = document.getElementById('confirm-create-dashboard');
+  const errBox = document.getElementById('file-error');
+  const fileMeta = document.getElementById('file-meta');
+
+  function openModal() { modal.setAttribute('aria-hidden', 'false'); }
+  function closeModal() { modal.setAttribute('aria-hidden', 'true'); errBox.style.display='none'; errBox.textContent=''; }
+
+  async function loadFiles() {
+    /* Fetch user's files from the backend */
+    const resp = await fetch('{{ url_for("views.list_user_files") }}', { credentials: 'same-origin' });
+    if (!resp.ok) throw new Error('Failed fetching files.');
+    const data = await resp.json();
+    const files = data.files || [];
+
+    /* Reset UI */
+    selectEl.innerHTML = '';
+    fileMeta.textContent = '';
+
+    if (files.length === 0) {
+      selectEl.style.display = 'none';
+      emptyNote.style.display = 'block';
+      return { files };
+    }
+
+    selectEl.style.display = 'inline';
+    emptyNote.style.display = 'none';
+
+    /* Sort by most recent upload_date (desc) */
+    files
+      .sort((a, b) => (b.upload_date || '').localeCompare(a.upload_date || ''))
+      .forEach(f => {
+        const opt = document.createElement('option');
+        opt.value = f._id;
+        const ts = f.upload_date ? new Date(f.upload_date).toLocaleString() : 'n/a';
+        opt.textContent = `${f.filename} (${ts})`;
+        selectEl.appendChild(opt);
+      });
+
+    if (files[0]) fileMeta.textContent = `Selected: ${files[0].filename}`;
+    selectEl.addEventListener('change', () => {
+      const selected = files.find(x => x._id === selectEl.value);
+      fileMeta.textContent = selected ? `Selected: ${selected.filename}` : '';
+    });
+
+    return { files };
+  }
+
+  async function handleOpen() {
+    try {
+      const { files } = await loadFiles();
+      openModal();
+      if (files.length === 0) {
+        alert('You must upload at least one CSV file before creating a dashboard.');
+        closeModal();
+        window.location.href = '{{ url_for("views.upload_files") }}';
+      }
+    } catch (e) {
+      alert('Failed to load your files. Please try again later.');
+    }
+  }
+
+  async function createDashboard() {
+    const fileId = selectEl.value;
+    if (!fileId) {
+      errBox.textContent = 'Please select a file.';
+      errBox.style.display = 'block';
+      return;
+    }
+    errBox.style.display = 'none';
+    errBox.textContent = '';
+
+    // Disable button to prevent multiple clicks
+    const originalButtonText = confirmBtn.textContent;
+    confirmBtn.disabled = true;
+    confirmBtn.textContent = 'Creating...';
+
+    try {
+        /* If CSRF is enabled, add the token header here */
+        const resp = await fetch('{{ url_for("views.create_dashboard") }}', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
+          body: JSON.stringify({ file_id: fileId })
+        });
+
+        const data = await resp.json().catch(() => ({}));
+        if (!resp.ok || !data.success) {
+          const msg = (data && data.error) ? data.error : 'Failed to create the dashboard. Please try again later.';
+          errBox.textContent = msg;
+          errBox.style.display = 'block';
+          return;
+        }
+
+        const target = data.redirect || '{{ url_for("views.dashboard") }}';
+        window.location.href = target;
+    } finally {
+        // Re-enable the button and restore its text
+        confirmBtn.disabled = false;
+        confirmBtn.textContent = originalButtonText;
+    }
+  }
+
+  if (btnOpen) btnOpen.addEventListener('click', handleOpen);
+  closeEls.forEach(el => el.addEventListener('click', closeModal));
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal.querySelector('.sd-modal__backdrop')) closeModal();
+  });
+  if (confirmBtn) confirmBtn.addEventListener('click', createDashboard);
+})();
+</script>
+{% endblock %}
