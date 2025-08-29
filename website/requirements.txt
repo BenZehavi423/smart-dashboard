@@ -11,3 +11,5 @@ pandas
 colorama
 requests
 matplotlib
+Flask-Limiter
+locust

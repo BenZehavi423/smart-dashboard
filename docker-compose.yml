@@ -5,6 +5,7 @@ services:
     container_name: smart_dashboard_web
     ports: # Map host port 5000 to container port 5000
       - "5000:5000"
+      - "8089:8089" #For stress test
     volumes: #Mount code into container for live updates
       - ./website:/app
     networks: # Join a shared network so services can communicate
