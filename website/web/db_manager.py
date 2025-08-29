@@ -260,15 +260,15 @@ class MongoDBManager:
         :return: True if update was successful
         """
         try:
-            logger.info(f"Updating plot presentation order for business: {business_name}", 
-                        extra_fields={'business_name': business_name, 'plot_order_length': len(plot_order)})
+            logger.info(f"Updating plot presentation order for business ID: {business_id}",
+                        extra_fields={'business_id': business_id, 'plot_order_length': len(plot_order)})
 
-            result = self.update_business(business_name, {"presented_plot_order": plot_order})
+            result = self.update_business(business_id, {"presented_plot_order": plot_order})
 
             if result:
                 logger.info(f"Successfully updated plot presentation order for business: {business_name}")
             else:
-                logger.error(f"Failed to update plot presentation order for business: {business_name}")
+                logger.warning(f"Plot presentation order update was acknowledged but did not modify the document for business ID: {business_id}")
 
             return result
         except Exception as e:
@@ -337,7 +337,7 @@ class MongoDBManager:
         :return: True if at least one doc was modified, otherwise False
         """
         result = self.businesses.update_one({"_id": business_id}, {"$set": updates})
-        return result.modified_count > 0
+        return result.acknowledged
 
     def delete_business(self, business_id: str) -> bool:
         """
@@ -357,7 +357,44 @@ class MongoDBManager:
         businesses = self.businesses.find({"owner": owner_id})
         return [Business.from_dict(d) for d in businesses]
 
-        
+    def get_businesses_for_editor(self, editor_id: str) -> List[Business]:
+        """
+        Retrieves all businesses a specific user is an editor for.
+        :param editor_id: ID of the user
+        :return: List of Business objects
+        """
+        # The 'editors' field is an array, so we query for documents
+        # where the editor_id is in the 'editors' array.
+        businesses = self.businesses.find({"editors": editor_id})
+        return [Business.from_dict(d) for d in businesses]
+
+    def save_plot_changes_for_business(self, business_id: str, plot_updates: List[Dict[str, Any]],
+                                       plot_order: List[str]) -> bool:
+        """
+        Atomically saves all changes for the 'Edit Plots' page for a specific business.
+        :param business_id: The ID of the business being updated.
+        :param plot_updates: A list of dictionaries, each with 'plot_id' and 'is_presented'.
+        :param plot_order: A list of plot IDs in the new desired order.
+        :return: True if all operations were acknowledged.
+        """
+        try:
+            # Update the is_presented status for each plot
+            for update in plot_updates:
+                plot_id = update["plot_id"]
+                is_presented = update["is_presented"]
+                self.plots.update_one({"_id": plot_id}, {"$set": {"is_presented": is_presented}})
+
+            # Update the plot order on the business document
+            business_update_result = self.businesses.update_one(
+                {"_id": business_id},
+                {"$set": {"presented_plot_order": plot_order}}
+            )
+
+            return business_update_result.acknowledged
+
+        except Exception as e:
+            logger.error(f"Error saving plot changes for business {business_id}: {e}")
+            return False
 
 
 # ----- DASHBOARD OPERATIONS -----

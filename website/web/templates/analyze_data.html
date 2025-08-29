@@ -6,7 +6,7 @@ Analyze My Data
 <h1>Analyze My Data</h1>
 <a href="{{ url_for('views.business_page', business_name=business_name) }}" class="button">Back to Business Page</a>
 
-<div class="analyze-container">
+<div class="analyze-container" data-business-name="{{ business_name }}">>
     <div class="analysis-request-section">
         <h2>Generate a New Plot</h2>
         <p>Select one of your uploaded CSV files and describe the visualization you want to create.</p>

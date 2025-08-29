@@ -7,6 +7,9 @@ let plotsData = [];
 let originalPlotSelections = {}; // Store original state for comparison
 let originalPlotOrder = []; // Store original order for comparison
 
+const container = document.querySelector('.edit-plots-container');
+const businessName = container ? container.dataset.businessName : null;
+
 // Initialize data from server
 function initializeEditPlots(allPlots, presentedPlots) {
     plotsData = allPlots;
@@ -309,59 +312,52 @@ function resetOrder() {
 }
 
 function saveAllChanges() {
-    // Check if there are actual changes compared to original state
+    if (!businessName) {
+        alert("Error: Could not identify the business. Please refresh the page.");
+        return;
+    }
+
     if (!hasActualChanges()) {
-        // No actual changes were made - show modal with options
         showNoChangesModal(
-            () => {}, // Continue editing - do nothing
-            () => window.location.href = '/profile'
+            () => {},
+            () => window.location.href = `/business_page/${businessName}`
         );
         return;
     }
-    
-    // Check if any plots are selected
-    const selectedCount = Object.values(plotSelections).filter(isSelected => isSelected).length;
-    
-    if (selectedCount === 0) {
-        // No plots selected - show confirmation popup
-        const confirmed = confirm('You haven\'t selected any images to present. Are you sure you want to continue? You will be returned to your profile with no plots displayed.');
-        
-        if (!confirmed) {
-            // User cancelled - stay on the page
-            return;
-        }
-    }
-    
+
     const plotUpdates = Object.keys(plotSelections).map(plotId => ({
         plot_id: plotId,
         is_presented: plotSelections[plotId]
     }));
-    
-    fetch('/edit_plots', {
+
+    // --- FIX: Use the businessName to build the correct fetch URL ---
+    fetch(`/edit_plots/${businessName}`, {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
             plot_updates: plotUpdates,
             plot_order: selectedPlotOrder
         })
     })
-    .then(response => response.json())
+    .then(response => {
+        if (!response.ok) {
+            // If response is not OK (e.g., 404, 500), throw an error
+            throw new Error('Network response was not ok.');
+        }
+        return response.json();
+    })
     .then(data => {
         if (data.success) {
             hasChanges = false;
-            // Update original state to match current state
-            Object.assign(originalPlotSelections, plotSelections);
-            originalPlotOrder = [...selectedPlotOrder];
-            // Redirect to profile with success parameter
-            window.location.href = '/profile?success=changes_saved';
+            // --- FIX: Redirect to the correct business page ---
+            window.location.href = `/business_page/${businessName}?success=changes_saved`;
         } else {
             showInfoModal('Error', 'Error saving changes. Please try again.', 'OK');
         }
     })
     .catch(error => {
-        showInfoModal('Error', 'Error saving changes. Please try again.', 'OK');
+        console.error('Error saving changes:', error);
+        showInfoModal('Error', 'An unexpected error occurred. Please check the console for details.', 'OK');
     });
 }
 
@@ -375,26 +371,16 @@ window.addEventListener('beforeunload', function(e) {
 
 // Override the "Back to Business Page" link to check for unsaved changes
 document.addEventListener('DOMContentLoaded', function() {
-    const backToProfileLink = document.querySelector('a[href*="profile"], a[href="/profile"], a.button[href*="profile"]');
-    
-    if (backToProfileLink) {
-        backToProfileLink.addEventListener('click', function(e) {
+    const backLink = document.querySelector(`a[href*="/business_page/${businessName}"]`);
+    if (backLink) {
+        backLink.addEventListener('click', function(e) {
             if (hasChanges && hasActualChanges()) {
                 e.preventDefault();
-                
-                // Clear the beforeunload warning by setting hasChanges to false temporarily
                 const originalHasChanges = hasChanges;
                 hasChanges = false;
-                
                 showUnsavedChangesModal(
-                    () => {
-                        // Continue editing - restore hasChanges
-                        hasChanges = originalHasChanges;
-                    },
-                    () => {
-                        // Discard changes - keep hasChanges as false and go to profile
-                        window.location.href = '/profile';
-                    }
+                    () => { hasChanges = originalHasChanges; },
+                    () => { window.location.href = this.href; }
                 );
             }
         });

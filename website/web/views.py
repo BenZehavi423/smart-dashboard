@@ -118,6 +118,10 @@ def edit_plots(business_name):
     user = current_app.db.get_user_by_username(username)
     business = current_app.db.get_business_by_name(business_name)
 
+    if not business or user._id not in business.editors:
+        return render_template('error.html',
+                               error='Business not found or you do not have permission to access it.'), 404
+
     logger.info(f"Edit plots page accessed by user: {username}",
                 extra_fields={'user_id': user._id, 'action': 'edit_plots_access'})
 
@@ -127,81 +131,58 @@ def edit_plots(business_name):
         plot_updates = data.get('plot_updates', [])
         plot_order = data.get('plot_order', [])
 
-        logger.info(f"User {username} saving plot changes: {len(plot_updates)} updates, {len(plot_order)} plots in order",
-                    extra_fields={'user_id': user._id, 'updates_count': len(plot_updates), 'order_length': len(plot_order)})
+        logger.info(f"User {username} saving plot changes for business '{business_name}'",
+                    extra_fields={'user_id': user._id, 'updates_count': len(plot_updates),
+                                  'order_length': len(plot_order)})
 
-        # Update plot presentation status
-        plot_success = current_app.db.update_multiple_plots(plot_updates)
-
-        # Update plot order in business page
-        order_success = current_app.db.update_plot_presentation_order(business._id, plot_order)
-
-        success = plot_success and order_success
+        success = current_app.db.save_plot_changes_for_business(business._id, plot_updates, plot_order)
 
         if success:
-            logger.info(f"Plot changes saved successfully for user {username}",
-                        extra_fields={'user_id': user._id, 'presented_plots': len(plot_order)})
+            logger.info(f"Plot changes saved successfully for user {username}")
         else:
-            logger.error(f"Failed to save plot changes for user {username}",
-                         extra_fields={'user_id': user._id, 'plot_success': plot_success, 'order_success': order_success})
+            logger.error(f"Failed to save plot changes for user {username}")
 
         return jsonify({'success': success})
 
     # GET: render the edit plots page
-    all_plots = current_app.db.get_plots_for_business(business_name)
-    presented_plots = [p for p in all_plots if p.is_presented]
-
-    # Get business to determine presented plot order
-    business = current_app.db.get_business_by_name(business_name)
-
-    # Sort presented plots according to business order
-    plots_dict = {plot._id: plot for plot in presented_plots}
+    all_plots = current_app.db.get_plots_for_business(business._id)
     ordered_presented_plots = []
+    plots_dict = {plot._id: plot for plot in all_plots if plot.is_presented}
+
     for plot_id in business.presented_plot_order:
         if plot_id in plots_dict:
             ordered_presented_plots.append(plots_dict[plot_id])
 
-    # Add any plots that are presented but not in the order list
-    for plot in presented_plots:
-        if plot._id not in business.presented_plot_order:
+    for plot in all_plots:
+        if plot.is_presented and plot._id not in business.presented_plot_order:
             ordered_presented_plots.append(plot)
 
-    # Convert plots to a format suitable for JSON serialization
-    all_plots_data = []
-    for plot in all_plots:
-        all_plots_data.append({
-            '_id': plot._id,
-            'image_name': plot.image_name,
-            'image': plot.image,
-            'created_time': plot.created_time.isoformat() if plot.created_time else None,
-            'is_presented': plot.is_presented
-        })
+    all_plots_data = [{
+        '_id': p._id, 'image_name': p.image_name, 'image': p.image,
+        'created_time': p.created_time.isoformat() if p.created_time else None,
+        'is_presented': p.is_presented
+    } for p in all_plots]
 
-    presented_plots_data = []
-    for plot in ordered_presented_plots:
-        presented_plots_data.append({
-            '_id': plot._id,
-            'image_name': plot.image_name,
-            'image': plot.image,
-            'created_time': plot.created_time.isoformat() if plot.created_time else None,
-            'is_presented': plot.is_presented
-        })
-
-    logger.info(f"Edit plots page rendered for user {username}: {len(all_plots)} total plots, {len(presented_plots)} presented",
-                extra_fields={'user_id': user._id, 'total_plots': len(all_plots), 'presented_plots': len(presented_plots)})
+    presented_plots_data = [{
+        '_id': p._id, 'image_name': p.image_name, 'image': p.image,
+        'created_time': p.created_time.isoformat() if p.created_time else None,
+        'is_presented': p.is_presented
+    } for p in ordered_presented_plots]
 
     return render_template('edit_plots.html',
-                         user=user,
-                         all_plots=all_plots_data,
-                         presented_plots=presented_plots_data,
-                         business_name=business_name)
-
+                           user=user,
+                           all_plots=all_plots_data,
+                           presented_plots=presented_plots_data,
+                           business_name=business_name)
 @views.route('/analyze_data/<business_name>', methods=['GET', 'POST'])
 @login_required
 def analyze_data(business_name):
     username = session.get('username')
     user = current_app.db.get_user_by_username(username)
-    business = current_app.db.get_business_by_id(user._id)
+    business = current_app.db.get_business_by_name(business_name)
+
+    if not business:
+        return jsonify({'success': False, 'error': 'business not found'}), 404
 
     if request.method == 'POST':
         # This now handles the plot generation request from the new frontend
@@ -224,11 +205,16 @@ def analyze_data(business_name):
 
     return render_template('analyze_data.html', user=user, business_name=business_name)
 
-@views.route('/save_generated_plot', methods=['POST'])
+@views.route('/save_generated_plot/<business_name>', methods=['POST'])
 @login_required
-def save_generated_plot():
+def save_generated_plot(business_name):
     username = session.get('username')
     user = current_app.db.get_user_by_username(username)
+    business = current_app.db.get_business_by_name(business_name)
+
+    if not business or user._id not in business.editors:
+        return jsonify({'success': False, 'error': 'Unauthorized'}), 403
+
     data = request.get_json()
 
     image_name = data.get('image_name')
@@ -244,15 +230,13 @@ def save_generated_plot():
             image_name=image_name,
             image=image_data,
             files=[based_on_file],
-            user_id=user._id,
-            is_presented=True # New plots are presented by default
+            business_id=business._id
         )
         plot_id = current_app.db.create_plot(new_plot)
 
-        # Add the new plot to the user's presentation order
-        profile = current_app.db.get_or_create_user_profile(user._id)
-        profile.presented_plot_order.append(plot_id)
-        current_app.db.update_user_profile(user._id, {"presented_plot_order": profile.presented_plot_order})
+        # Update the business's plot order (not the user's old profile).
+        business.presented_plot_order.append(plot_id)
+        current_app.db.update_business(business._id, {"presented_plot_order": business.presented_plot_order})
 
         logger.info(f"User {username} saved a new plot: {image_name}", extra_fields={'user_id': user._id, 'plot_id': plot_id})
         return jsonify({'success': True, 'plot_id': plot_id})
@@ -284,7 +268,7 @@ def list_user_files():
     user = current_app.db.get_user_by_username(username)
     
     # Get all businesses the user has access to (as owner or editor)
-    user_businesses = current_app.db.get_businesses_for_owner(user._id)
+    user_businesses = current_app.db.get_businesses_for_editor(user._id)
     
     # Get files from all businesses
     all_files = []

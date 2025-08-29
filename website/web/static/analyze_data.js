@@ -13,6 +13,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     let generatedPlotData = null; // To store the base64 image data
 
+    const businessName = document.querySelector('.analyze-container').dataset.businessName;
     // --- Step 1: Load User's Files into Dropdown ---
     async function loadUserFiles() {
         try {
@@ -64,7 +65,7 @@ document.addEventListener('DOMContentLoaded', function() {
         plotActions.style.display = 'none';
 
         try {
-            const response = await fetch('/analyze_data', {
+            const response = await fetch(`/analyze_data/${businessName}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ file_id: fileId, prompt: prompt })
@@ -109,7 +110,7 @@ document.addEventListener('DOMContentLoaded', function() {
         savePlotBtn.disabled = true;
 
         try {
-            const response = await fetch('/save_generated_plot', {
+            const response = await fetch(`/save_generated_plot/${businessName}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -125,8 +126,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 throw new Error(data.error || 'Failed to save the plot.');
             }
 
-            // On success, redirect to profile page
-            window.location.href = '/profile?success=plot_saved';
+            // On success, redirect to business page
+            window.location.href = `/business_page/${businessName}?success=plot_saved`;
 
         } catch (error) {
             console.error("Error saving plot:", error);

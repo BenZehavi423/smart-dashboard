@@ -6,7 +6,7 @@ Edit Plots
 <h1>Edit Plots</h1>
 <a href="{{ url_for('views.business_page', business_name=business_name) }}" class="button">Back to Business Page</a>
 
-<div class="edit-plots-container">
+<div class="edit-plots-container" data-business-name="{{ business_name }}">
     <!-- Step 1: Select Plots to Present -->
     <div class="step-section" id="step1">
         <h2>Step 1: Select Plots to Present</h2>
