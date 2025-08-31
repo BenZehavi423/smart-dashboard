@@ -1,4 +1,4 @@
-from flask import session
+from flask import session, request
 from flask_socketio import emit, join_room, leave_room
 from . import socketio
 
@@ -14,16 +14,15 @@ def handle_start_editing(data):
     business_name = data['business_name']
     username = session.get('username')
 
-    # Join a 'room' for this specific business, so we can send messages to everyone on this page
+    # Associate the user's session ID with the business they are editing
+    session['editing_business'] = business_name
+
     join_room(business_name)
 
     if business_name not in editing_locks:
-        # If no one is editing, grant the lock to the current user
         editing_locks[business_name] = username
-        # Notify everyone in the room that the business is now locked
         emit('business_locked', {'username': username}, room=business_name)
     elif editing_locks[business_name] != username:
-        # If someone else is editing, notify the current user
         emit('lock_failed', {'username': editing_locks[business_name]})
 
 
@@ -35,11 +34,24 @@ def handle_stop_editing(data):
     business_name = data['business_name']
     username = session.get('username')
 
-    # Leave the room for this business
     leave_room(business_name)
 
     if editing_locks.get(business_name) == username:
-        # If the current user holds the lock, release it
         del editing_locks[business_name]
-        # Notify everyone in the room that the business is now unlocked
+        emit('business_unlocked', room=business_name)
+
+
+@socketio.on('disconnect')
+def handle_disconnect():
+    """
+    Called when a user disconnects from the WebSocket.
+    """
+    # Check if the user was editing a business
+    business_name = session.get('editing_business')
+    username = session.get('username')
+
+    if business_name and editing_locks.get(business_name) == username:
+        # If the disconnected user was the one editing, release the lock
+        del editing_locks[business_name]
+        # Notify the other users that the business is now unlocked
         emit('business_unlocked', room=business_name)
