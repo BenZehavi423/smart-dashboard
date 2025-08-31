@@ -28,12 +28,16 @@ def home():
 def profile():
     username = session.get('username')
     user = current_app.db.get_user_by_username(username)
-    businesses = current_app.db.get_businesses_for_owner(user._id)
+    owned_businesses = current_app.db.get_businesses_for_owner(user._id)
+    shared_businesses = current_app.db.get_businesses_as_editor(user._id)
+    logger.info(
+        f"Profile page accessed by user: {username}, found {len(owned_businesses)} owned and {len(shared_businesses)} shared businesses.",
+        extra_fields={'user_id': user._id})
 
-    logger.info(f"Profile page accessed by user: {username} with {len(businesses)} businesses",
-                extra_fields={'user_id': user._id, 'businesses_count': len(businesses)})
-
-    return render_template('profile.html', user=user, businesses=businesses), 200
+    return render_template('profile.html',
+                           user=user,
+                           owned_businesses=owned_businesses,
+                           shared_businesses=shared_businesses), 200
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() == 'csv'

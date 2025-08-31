@@ -396,6 +396,18 @@ class MongoDBManager:
             logger.error(f"Error saving plot changes for business {business_id}: {e}")
             return False
 
+    def get_businesses_as_editor(self, user_id: str) -> List[Business]:
+        """
+        Retrieves all businesses where a user is an editor but not the owner.
+        :param user_id: ID of the user
+        :return: List of Business objects
+        """
+        query = {
+            "editors": user_id,
+            "owner": {"$ne": user_id}
+        }
+        businesses = self.businesses.find(query)
+        return [Business.from_dict(d) for d in businesses]
 
 # ----- DASHBOARD OPERATIONS -----
     def create_dashboard(self, user_id: str, file_id: str, insights: List[str]) -> str:

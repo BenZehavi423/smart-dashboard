@@ -1,4 +1,40 @@
 ///////////// Edit plots page JavaScript functionality /////////////
+document.addEventListener('DOMContentLoaded', function() {
+    if (typeof socket !== 'undefined' && businessName) {
+        // When the page loads, tell the server we're starting to edit
+        socket.emit('start_editing', { business_name: businessName });
+
+        // Listen for the 'business_locked' event from the server
+        socket.on('business_locked', function(data) {
+            // If we receive this event, it means we have the lock
+        });
+
+        // Listen for the 'lock_failed' event from the server
+        socket.on('lock_failed', function(data) {
+            // If we receive this event, it means someone else is editing
+            // Disable the page and show a message
+            document.body.innerHTML = `
+                <div class="container">
+                    <h1>Editing Locked</h1>
+                    <p>This business is currently being edited by <strong>${data.username}</strong>. Please try again later.</p>
+                    <a href="/business_page/${businessName}" class="button">Back to Business Page</a>
+                </div>
+            `;
+        });
+
+        // Listen for the 'business_unlocked' event from the server
+        socket.on('business_unlocked', function() {
+            // If we receive this event, it means the lock has been released
+            // You can optionally reload the page to allow editing
+            window.location.reload();
+        });
+
+        // When the user leaves the page, tell the server we're stopping editing
+        window.addEventListener('beforeunload', function() {
+            socket.emit('stop_editing', { business_name: businessName });
+        });
+    }
+});
 
 let hasChanges = false;
 let plotSelections = {};
@@ -13,13 +49,13 @@ const businessName = container ? container.dataset.businessName : null;
 // Initialize data from server
 function initializeEditPlots(allPlots, presentedPlots) {
     plotsData = allPlots;
-    
+
     // Initialize plot selections
     allPlots.forEach(plot => {
         plotSelections[plot._id] = plot.is_presented;
         originalPlotSelections[plot._id] = plot.is_presented; // Store original state
     });
-    
+
     // Initialize selected plot order from current presented plots
     presentedPlots.forEach(plot => {
         selectedPlotOrder.push(plot._id);
@@ -30,7 +66,7 @@ function initializeEditPlots(allPlots, presentedPlots) {
 function togglePlotSelection(plotId, isSelected) {
     hasChanges = true;
     plotSelections[plotId] = isSelected;
-    
+
     if (isSelected && !selectedPlotOrder.includes(plotId)) {
         selectedPlotOrder.push(plotId);
     } else if (!isSelected) {
@@ -41,10 +77,10 @@ function togglePlotSelection(plotId, isSelected) {
 function togglePlotCard(plotId) {
     const checkbox = document.getElementById(`plot_${plotId}`);
     const isCurrentlySelected = checkbox.checked;
-    
+
     // Toggle the checkbox
     checkbox.checked = !isCurrentlySelected;
-    
+
     // Call the existing toggle function
     togglePlotSelection(plotId, !isCurrentlySelected);
 }
@@ -68,40 +104,40 @@ function hasActualChanges() {
             return true;
         }
     }
-    
+
     // Check if plot order changed
     if (selectedPlotOrder.length !== originalPlotOrder.length) {
         return true;
     }
-    
+
     for (let i = 0; i < selectedPlotOrder.length; i++) {
         if (selectedPlotOrder[i] !== originalPlotOrder[i]) {
             return true;
         }
     }
-    
+
     return false;
 }
 
 function populateReorderList() {
     const reorderList = document.getElementById('reorderList');
     reorderList.innerHTML = '';
-    
+
     if (selectedPlotOrder.length === 0) {
         reorderList.innerHTML = '<div class="no-plots-message">No plots selected for presentation.</div>';
         return;
     }
-    
+
     // Add initial drop zone
     const initialDropZone = createDropZone(0);
     reorderList.appendChild(initialDropZone);
-    
+
     selectedPlotOrder.forEach((plotId, index) => {
         const plot = getPlotById(plotId);
         if (plot) {
             const plotItem = createReorderItem(plot, index);
             reorderList.appendChild(plotItem);
-            
+
             // Add drop zone after each item
             const dropZone = createDropZone(index + 1);
             reorderList.appendChild(dropZone);
@@ -114,12 +150,12 @@ function createDropZone(index) {
     dropZone.className = 'drop-zone';
     dropZone.dataset.index = index;
     dropZone.innerHTML = '<div class="drop-indicator"></div>';
-    
+
     dropZone.addEventListener('dragover', handleDropZoneDragOver);
     dropZone.addEventListener('dragenter', handleDropZoneDragEnter);
     dropZone.addEventListener('dragleave', handleDropZoneDragLeave);
     dropZone.addEventListener('drop', handleDropZoneDrop);
-    
+
     return dropZone;
 }
 
@@ -128,7 +164,7 @@ function createReorderItem(plot, index) {
     item.className = 'reorder-item';
     item.draggable = true;
     item.dataset.plotId = plot._id;
-    
+
     item.innerHTML = `
         <div class="reorder-number">${index + 1}</div>
         <div class="reorder-image">
@@ -143,7 +179,7 @@ function createReorderItem(plot, index) {
             <button class="button small" onclick="moveDown('${plot._id}')">↓</button>
         </div>
     `;
-    
+
     // Add enhanced drag and drop functionality
     item.addEventListener('dragstart', handleDragStart);
     item.addEventListener('dragend', handleDragEnd);
@@ -151,7 +187,7 @@ function createReorderItem(plot, index) {
     item.addEventListener('dragenter', handleDragEnter);
     item.addEventListener('dragleave', handleDragLeave);
     item.addEventListener('drop', handleDrop);
-    
+
     return item;
 }
 
@@ -190,7 +226,7 @@ function handleDragStart(e) {
 function handleDragEnd(e) {
     this.classList.remove('dragging');
     draggedItem = null;
-    
+
     // Remove all drop zone indicators
     document.querySelectorAll('.drop-zone').forEach(zone => {
         zone.classList.remove('active');
@@ -242,7 +278,7 @@ function handleDropZoneDragLeave(e) {
     const rect = this.getBoundingClientRect();
     const x = e.clientX;
     const y = e.clientY;
-    
+
     // Only deactivate if we're actually outside the drop zone
     if (x < rect.left || x > rect.right || y < rect.top || y > rect.bottom) {
         if (this === activeDropZone) {
@@ -256,20 +292,20 @@ function handleDropZoneDrop(e) {
     e.preventDefault();
     this.classList.remove('active');
     activeDropZone = null;
-    
+
     if (draggedItem) {
         const targetIndex = parseInt(this.dataset.index);
         const draggedPlotId = draggedItem.dataset.plotId;
         const currentIndex = selectedPlotOrder.indexOf(draggedPlotId);
-        
+
         // Don't do anything if dropping at the same position
         if (currentIndex === targetIndex) {
             return;
         }
-        
+
         // Remove from current position
         selectedPlotOrder.splice(currentIndex, 1);
-        
+
         // Insert at target position
         selectedPlotOrder.splice(targetIndex, 0, draggedPlotId);
         hasChanges = true;
@@ -318,10 +354,7 @@ function saveAllChanges() {
     }
 
     if (!hasActualChanges()) {
-        showNoChangesModal(
-            () => {},
-            () => window.location.href = `/business_page/${businessName}`
-        );
+        showNoChangesModal();
         return;
     }
 
@@ -330,7 +363,6 @@ function saveAllChanges() {
         is_presented: plotSelections[plotId]
     }));
 
-    // --- FIX: Use the businessName to build the correct fetch URL ---
     fetch(`/edit_plots/${businessName}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -341,15 +373,13 @@ function saveAllChanges() {
     })
     .then(response => {
         if (!response.ok) {
-            // If response is not OK (e.g., 404, 500), throw an error
-            throw new Error('Network response was not ok.');
+            throw new Error(`Server responded with status: ${response.status}`);
         }
         return response.json();
     })
     .then(data => {
         if (data.success) {
             hasChanges = false;
-            // --- FIX: Redirect to the correct business page ---
             window.location.href = `/business_page/${businessName}?success=changes_saved`;
         } else {
             showInfoModal('Error', 'Error saving changes. Please try again.', 'OK');
@@ -403,7 +433,7 @@ function createCustomModal(title, message, buttons) {
         align-items: center;
         z-index: 1000;
     `;
-    
+
     // Create modal content
     const modalContent = document.createElement('div');
     modalContent.style.cssText = `
@@ -415,7 +445,7 @@ function createCustomModal(title, message, buttons) {
         text-align: center;
         font-family: Arial, sans-serif;
     `;
-    
+
     // Create buttons HTML
     const buttonsHTML = buttons.map((button, index) => `
         <button id="customModalBtn${index}" style="
@@ -431,7 +461,7 @@ function createCustomModal(title, message, buttons) {
             margin: 0 5px;
         ">${button.text}</button>
     `).join('');
-    
+
     modalContent.innerHTML = `
         <h3 style="margin: 0 0 20px 0; color: #333; font-size: 20px;">${title}</h3>
         <p style="margin: 0 0 25px 0; color: #666; line-height: 1.5;">
@@ -441,28 +471,28 @@ function createCustomModal(title, message, buttons) {
             ${buttonsHTML}
         </div>
     `;
-    
+
     // Add hover effects and click handlers for each button
     buttons.forEach((button, index) => {
         const btnElement = modalContent.querySelector(`#customModalBtn${index}`);
-        
+
         btnElement.addEventListener('mouseenter', () => {
             btnElement.style.backgroundColor = button.hoverColor;
         });
         btnElement.addEventListener('mouseleave', () => {
             btnElement.style.backgroundColor = button.color;
         });
-        
+
         btnElement.addEventListener('click', () => {
             button.action();
             document.body.removeChild(modalOverlay);
         });
     });
-    
+
     // Add modal to page
     modalOverlay.appendChild(modalContent);
     document.body.appendChild(modalOverlay);
-    
+
     // Close modal when clicking outside
     modalOverlay.addEventListener('click', (e) => {
         if (e.target === modalOverlay) {
@@ -476,24 +506,20 @@ function showCustomModal(options) {
     createCustomModal(options.title, options.message, options.buttons);
 }
 
-function showNoChangesModal(onContinueEditing, onReturnToProfile) {
+function showNoChangesModal() {
     createCustomModal(
         "No Changes Made",
         "No changes were made to your plots.",
         [
             {
                 text: "Continue Editing",
-                color: "#007bff",
-                hoverColor: "#0056b3",
-                action: onContinueEditing || (() => {})
+                action: () => {}
             },
             {
-                text: "Return to Profile",
-                color: "#6c757d",
-                hoverColor: "#5a6268",
-                action: onReturnToProfile || (() => {
-                    window.location.href = '/profile';
-                })
+                text: "Return to Business Page",
+                action: () => {
+                    window.location.href = `/business_page/${businessName}`;
+                }
             }
         ]
     );
@@ -541,4 +567,4 @@ function showInfoModal(title, message, buttonText = "OK") {
 window.showModal = showCustomModal;
 window.showNoChangesModal = showNoChangesModal;
 window.showUnsavedChangesModal = showUnsavedChangesModal;
-window.showInfoModal = showInfoModal; 
+window.showInfoModal = showInfoModal;

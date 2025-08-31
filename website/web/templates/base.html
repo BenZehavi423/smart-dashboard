@@ -8,6 +8,11 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+<script>
+    var socket = io();
+</script>
+
 <body class="{% if request.endpoint in ['views.home', 'auth.login', 'auth.register'] %}full-height-layout{% endif %}">
 
   <!-- Navbar -->

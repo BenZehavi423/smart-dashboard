@@ -5,7 +5,9 @@ from .db_manager import MongoDBManager
 from .auth import auth
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
+from flask_socketio import SocketIO
 
+socketio = SocketIO()
 def create_app():
     app = Flask(__name__)
     app.secret_key = "very-secret-key"  # 🔒 REPLACE in production
@@ -28,5 +30,10 @@ def create_app():
 
     app.register_blueprint(views, url_prefix='/')
     app.register_blueprint(auth, url_prefix='/')
+
+    # Initialize Socket.IO with the app
+    socketio.init_app(app)
+
+    from . import sockets
 
     return app

@@ -25,19 +25,35 @@ Dashboard
 
 <div class="dashboard-section">
   <h2>My Businesses</h2>
+  <a href="{{ url_for('views.new_business') }}" class="button green">Create New Business</a>
   <ul>
-    {% if businesses %}
-      {% for business in businesses %}
+    {% if owned_businesses %}
+      {% for business in owned_businesses %}
         <li>
-          <a href="/business_page/{{ business.name }}">
+          <a href="{{ url_for('views.business_page', business_name=business.name) }}">
             {{ business.name }}
           </a>
         </li>
       {% endfor %}
     {% else %}
-      <li>No businesses found. Create your first business to get started!
-        <a href="{{ url_for('views.new_business') }}" class="button green">Create New Business</a>
-      </li>
+      <li>You haven't created any businesses yet.</li>
+    {% endif %}
+  </ul>
+</div>
+
+<div class="dashboard-section">
+  <h2>Businesses Shared With Me</h2>
+  <ul>
+    {% if shared_businesses %}
+      {% for business in shared_businesses %}
+        <li>
+          <a href="{{ url_for('views.business_page', business_name=business.name) }}">
+            {{ business.name }}
+          </a>
+        </li>
+      {% endfor %}
+    {% else %}
+      <li>No businesses have been shared with you.</li>
     {% endif %}
   </ul>
 </div>

@@ -1,5 +1,5 @@
 import argparse
-from web import create_app
+from web import create_app, socketio
 from web.logger import logger
 import sys
 # Ensure the web package is in the Python path
@@ -18,7 +18,7 @@ if __name__ == '__main__':
         logger.info("Debug mode enabled")
     
     try:
-        app.run(debug=args.debug, host='0.0.0.0', port=args.port)
+        socketio.run(app, debug=args.debug, host='0.0.0.0', port=args.port, allow_unsafe_werkzeug=True)
     except Exception as e:
         logger.error(f"Failed to start server: {str(e)}")
         sys.exit(1)
