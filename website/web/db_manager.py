@@ -68,56 +68,7 @@ class MongoDBManager:
         """
         doc = self.files.find_one({})
         return File.from_dict(doc) if doc else None
-    
-# ----- DATASET OPERATIONS -----
 
-    def create_dataset(self, ds: Dataset) -> str:
-        """
-        writes the dataset to the collection and Returns the ds id
-        :param ds:
-        :return: ds id
-        """
-        self.datasets.insert_one(ds.to_dict())
-        return ds._id
-    
-    def get_datasets_for_file(self, file_id: str) -> List[Dataset]:
-        """
-        gets the dataset from the collection
-        :param file_id:
-        :return: a cursor of all matching docs; convert each to a Dataset.
-        """
-        docs = self.datasets.find({"file_id": file_id})
-        return [Dataset.from_dict(d) for d in docs]
-
-    def delete_dataset(self, ds_id: str) -> bool:
-        result = self.datasets.delete_one({"_id": ds_id})
-        return result.deleted_count > 0
-    
- # ----- ANALYSIS OPERATIONS -----   
-    def create_analysis(self, ar: AnalysisResult) -> str:
-        """
-        writes the analysis result to the collection and Returns the analysis result id
-        :param ar:
-        :return: analysis result id
-        """
-        self.analysis.insert_one(ar.to_dict())
-        return ar._id
-
-
-    def get_analysis_for_file(self, file_id: str) -> List[AnalysisResult]:
-        """
-        gets the analysis result from the collection
-        :param file_id:
-        :return: a cursor of all matching docs; convert each to a AnalysisResult.
-        """
-        docs = self.analysis.find({"file_id": file_id})
-        return [AnalysisResult.from_dict(d) for d in docs]
-
-
-    def delete_analysis(self, ar_id: str) -> bool:
-        result = self.analysis.delete_one({"_id": ar_id})
-        return result.deleted_count > 0
-    
 # ----- USER OPERATIONS -----
     def create_user(self, user: User) -> str:
         """
@@ -190,7 +141,7 @@ class MongoDBManager:
         """
         data = self.plots.find_one({"_id": plot_id})
         return Plot.from_dict(data) if data else None
-    
+
     def delete_plot(self, plot_id: str) -> bool:
         """
         Deletes the plot from the collection
@@ -213,16 +164,7 @@ class MongoDBManager:
         
         docs = self.plots.find(query)
         return [Plot.from_dict(d) for d in docs]
-    
-    def present_plot(self, plot_id: str, is_presented: bool) -> bool:
-        """
-        Updates the is_presented field of a plot
-        :param plot_id: ID of the plot to update
-        :param is_presented: Boolean value to set
-        :return: True if at least one doc was modified, otherwise False
-        """
-        result = self.plots.update_one({"_id": plot_id}, {"$set": {"is_presented": is_presented}})
-        return result.modified_count > 0
+
 
     def get_presented_plots_for_business_ordered(self, business_name: str) -> List[Plot]:
         """
@@ -409,29 +351,4 @@ class MongoDBManager:
         businesses = self.businesses.find(query)
         return [Business.from_dict(d) for d in businesses]
 
-# ----- DASHBOARD OPERATIONS -----
-    def create_dashboard(self, user_id: str, file_id: str, insights: List[str]) -> str:
-        """
-        Creates a new dashboard entry
-        :param user_id: ID of the user
-        :param file_id: ID of the associated file
-        :param insights: List of insights for the dashboard
-        :return: dashboard id
-        """
-        dashboard = {
-            "user_id": user_id,
-            "file_id": file_id,
-            "created_time": datetime.utcnow(),
-            "insights": insights
-        }
-        result = self.dashboards.insert_one(dashboard)
-        return str(result.inserted_id)
-    
-    def get_dashboard_for_user(self, user_id: str) -> Optional[Dict[str, Any]]:
-        return self.dashboards.find_one({"user_id": user_id})
-    
-    def delete_dashboard(self, user_id: str) -> bool:
-        #notice!!!! delet by user id' if we add multiple dashboard we need to change this
-        result = self.dashboards.delete_one({"user_id": user_id})
-        return result.deleted_count > 0
 
