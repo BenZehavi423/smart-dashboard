@@ -35,7 +35,7 @@ services:
       ports: # default Mongo port
         - "27017:27017"
       volumes: # Persist database files on the host
-        - C:\Users\benze\OneDrive - Technion\Ben&Yamit:/data/db
+        - ./data/db:/data/db
       networks:
         - my-network
 
