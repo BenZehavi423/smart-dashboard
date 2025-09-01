@@ -23,6 +23,15 @@ def home():
 
     return render_template('home.html'), 200
 
+@views.route('/home_with_logout')
+def home_with_logout():
+    # If user is logged in, log them out when visiting home page
+    if 'username' in session:
+        session.pop('username', None)
+        flash('You have been logged out.', 'success')
+    
+    return redirect(url_for('views.home'))
+
 @views.route('/profile')
 @login_required
 def profile():
@@ -350,9 +359,13 @@ def business_page(business_name):
             'is_presented': plot.is_presented
         })
     
-    # Create a helper function for the template to get editor user info
     def get_editor_user(editor_id):
         return current_app.db.get_user_by_id(editor_id)
+    
+    form_username = request.args.get('username', '')
+    
+    from flask import get_flashed_messages
+    all_messages = get_flashed_messages(with_categories=True)
     
     return render_template('business_page.html', 
                          user=user, 
@@ -360,6 +373,8 @@ def business_page(business_name):
                          owner=owner_name,
                          plots=plots_data,
                          files=files_data,
+                         form_username=form_username,
+                         all_messages=all_messages,
                          get_editor_user=get_editor_user), 200
 
 
@@ -390,8 +405,8 @@ def add_editor(business_name):
     # Find the user by username
     editor_user = current_app.db.get_user_by_username(editor_username)
     if not editor_user:
-        # Could add a flash message here for better UX
-        return redirect(url_for('views.business_page', business_name=business_name))
+        flash(f'Username "{editor_username}" does not exist. Please check the username and try again.', 'error')
+        return redirect(url_for('views.business_page', business_name=business_name, username=editor_username))
     
     # Ensure editors is a set
     if not hasattr(business, 'editors') or not isinstance(business.editors, set):
@@ -399,8 +414,8 @@ def add_editor(business_name):
     
     # Check if user is already an editor
     if editor_user._id in business.editors:
-        # Could add a flash message here for better UX
-        return redirect(url_for('views.business_page', business_name=business_name))
+        flash(f'User "{editor_username}" is already an editor of this business.', 'error')
+        return redirect(url_for('views.business_page', business_name=business_name, username=editor_username))
     
     # Add user to editors
     business.editors.add(editor_user._id)
@@ -411,6 +426,7 @@ def add_editor(business_name):
     logger.info(f"User {username} added {editor_username} as editor to business {business_name}",
                extra_fields={'owner_id': user._id, 'editor_id': editor_user._id, 'business_name': business_name})
     
+    flash(f'User "{editor_username}" has been successfully added as an editor.', 'success')
     return redirect(url_for('views.business_page', business_name=business_name))
 
 
@@ -459,6 +475,8 @@ def remove_editor(business_name):
         
         logger.info(f"User {username} removed {editor_username} as editor from business {business_name}",
                    extra_fields={'owner_id': user._id, 'editor_id': editor_id, 'business_name': business_name})
+        
+        flash(f'User "{editor_username}" has been removed as an editor.', 'success')
     
     return redirect(url_for('views.business_page', business_name=business_name))
 

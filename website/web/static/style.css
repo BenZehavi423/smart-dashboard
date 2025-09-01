@@ -601,6 +601,31 @@ h1 {
     color: #c62828;
 }
 
+/* Flash messages for general pages */
+.flash-container {
+    margin: 20px 0;
+}
+
+.flash-message {
+    padding: 12px 16px;
+    border-radius: 6px;
+    margin-bottom: 8px;
+    font-size: 0.95rem;
+    border-left: 4px solid;
+}
+
+.flash-message.error {
+    background: #ffebee;
+    color: #c62828;
+    border-left-color: #c62828;
+}
+
+.flash-message.success {
+    background: #e8f5e9;
+    color: #2e7d32;
+    border-left-color: #2e7d32;
+}
+
 /* ===== UPLOAD PAGE ===== */
 
 .upload-wrapper {

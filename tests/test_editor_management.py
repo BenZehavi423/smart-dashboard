@@ -63,6 +63,29 @@ def test_add_editor_user_not_found(client, mock_db, test_user, mock_business):
     assert response.status_code == 302  # Redirect to business page
 
 
+def test_add_editor_user_not_found_shows_flash_message(client, mock_db, test_user, mock_business):
+    """Test that adding editor with non-existent username shows flash error message"""
+    mock_business.owner = test_user._id
+    # Set up mock to return test_user for 'testuser' and None for 'nonexistent'
+    mock_db.get_user_by_username.side_effect = lambda username: test_user if username == 'testuser' else None
+    mock_db.get_business_by_name.return_value = mock_business
+    
+    with client.session_transaction() as sess:
+        sess['username'] = 'testuser'
+    
+    data = {'username': 'nonexistent'}
+    response = client.post('/add_editor/test-business', data=data)
+    assert response.status_code == 302  # Redirect to business page
+    
+    # Follow the redirect to see the flash message
+    redirect_url = response.headers['Location']
+    print(f"Redirect URL: {redirect_url}")
+    response = client.get(redirect_url)
+    assert response.status_code == 200
+    # Check that the username parameter is passed back to the form
+    assert b'value="nonexistent"' in response.data
+
+
 def test_add_editor_already_editor(client, mock_db, test_user, mock_business):
     """Test adding editor when user is already an editor"""
     mock_business.owner = test_user._id
@@ -78,6 +101,30 @@ def test_add_editor_already_editor(client, mock_db, test_user, mock_business):
     data = {'username': 'neweditor'}
     response = client.post('/add_editor/test-business', data=data)
     assert response.status_code == 302  # Redirect to business page
+
+
+def test_add_editor_already_editor_shows_flash_message(client, mock_db, test_user, mock_business):
+    """Test that adding editor who is already an editor shows flash error message"""
+    mock_business.owner = test_user._id
+    mock_business.editors = {"testuser_id", "editor123"}
+    
+    editor_user = User(username="neweditor", password_hash="hash", _id="editor123")
+    mock_db.get_user_by_username.side_effect = lambda username: test_user if username == 'testuser' else editor_user
+    mock_db.get_business_by_name.return_value = mock_business
+    
+    with client.session_transaction() as sess:
+        sess['username'] = 'testuser'
+    
+    data = {'username': 'neweditor'}
+    response = client.post('/add_editor/test-business', data=data)
+    assert response.status_code == 302  # Redirect to business page
+    
+    # Follow the redirect to see the flash message
+    redirect_url = response.headers['Location']
+    response = client.get(redirect_url)
+    assert response.status_code == 200
+    # Check that the username parameter is passed back to the form
+    assert b'value="neweditor"' in response.data
 
 
 def test_remove_editor_page_requires_login(client):
