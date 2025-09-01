@@ -14,4 +14,4 @@ COPY . .
 
 ENV TESTING=True
 
-CMD ["pytest", "tests/"]
+CMD ["tail", "-f", "/dev/null"]

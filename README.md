@@ -38,17 +38,18 @@ This will build the necessary Docker images and start all the services. The web 
 ## **🧪 Running the Tests**<br> 
 
 ### How to Run Tests
-1.  **Start the project services**: Ensure the main application services (web, llm_service, db) are running in the background. Integration tests depend on them being available.
+1. **Run the test container on a new terminal**: Use the `docker-compose run` command to launch the dedicated `test_runner` container. This container will execute all `pytest` tests and print the results to the console.
     ```bash
-    docker-compose up 
+    docker-compose run test_runner pytest tests/
     ```
 
-2.  **Run the test container on a new terminal**: Use the `docker-compose run` command to launch the dedicated `test_runner` container. This container will execute all `pytest` tests and print the results to the console.
-    ```bash
-    docker-compose run test_runner
-    ```
-
-3.  **Stop the services**: Once the tests are complete, you can stop all the running containers.
+2. **Stop the services**: Once the tests are complete, you can stop all the running containers.
     ```bash
     docker-compose down
     ```
+### How to run stress tests on Locust
+1. **In a new terminal:**
+    ```bash
+    docker compose exec web locust -f /app/locustfile.py
+    ```
+2. **Open http://localhost:8089/ and run the test you want**

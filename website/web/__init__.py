@@ -10,6 +10,8 @@ from flask_socketio import SocketIO
 socketio = SocketIO()
 def create_app():
     app = Flask(__name__)
+    # Use a default secret key for development if the environment variable is not set.
+    # This is insecure for production but makes development easier.
     app.secret_key = os.environ.get("FLASK_SECRET_KEY", "default_secret_key_for_development")
     # Initialize the rate limiter
     limiter = Limiter(

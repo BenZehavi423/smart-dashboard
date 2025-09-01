@@ -684,7 +684,8 @@ def delete_user():
         # First, delete all businesses owned by the user
         owned_businesses = current_app.db.get_businesses_for_owner(user._id)
         for business in owned_businesses:
-            current_app.db.delete_business(business._id, user._id)
+            # Corrected line: removed the extra user._id argument
+            current_app.db.delete_business(business._id)
 
         # Now, delete the user themselves
         current_app.db.delete_user(user._id)
