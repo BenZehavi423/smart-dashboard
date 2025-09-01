@@ -122,10 +122,14 @@ def edit_plots(business_name):
     user = current_app.db.get_user_by_username(username)
     business = current_app.db.get_business_by_name(business_name)
 
-    if not business or user._id not in business.editors:
+    if not business:
         return render_template('error.html',
-                               error='Business not found or you do not have permission to access it.'), 404
+                               error='Business not found'), 404
 
+    if user._id not in business.editors:
+        return render_template('error.html',
+                               error='You do not have permission to access this business.'), 403
+    
     logger.info(f"Edit plots page accessed by user: {username}",
                 extra_fields={'user_id': user._id, 'action': 'edit_plots_access'})
 
@@ -178,6 +182,7 @@ def edit_plots(business_name):
                            all_plots=all_plots_data,
                            presented_plots=presented_plots_data,
                            business_name=business_name)
+
 @views.route('/analyze_data/<business_name>', methods=['GET', 'POST'])
 @login_required
 def analyze_data(business_name):
@@ -262,9 +267,6 @@ def dashboard():
 
     return render_template('dashboard.html', user=user, dashboard=dashboard_doc), 200
 
-
-
-
 @views.route('/dashboard/files', methods=['GET'])
 @login_required
 def list_user_files():
@@ -292,10 +294,6 @@ def list_user_files():
         for f in all_files
     ]
     return jsonify({'files': files_payload}), 200
-
-
-
-
 
 @views.route('/dashboard/create', methods=['POST'])
 @login_required
