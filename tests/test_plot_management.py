@@ -4,9 +4,6 @@ from datetime import datetime
 from unittest.mock import patch, MagicMock
 from website.web.models import User, Plot, Business
 
-# TODO: need to refer to specific business to check (throught all the file)
-# TODO: change everything from user profile to business
-
 # ----- Business page tests -----
 def test_business_page_displays_presented_plots(client, mock_db, test_user, mock_presented_plots_ordered, mock_business):
     """Test that business page displays presented plots in correct order"""
@@ -200,7 +197,6 @@ def test_edit_plots_page_drag_drop_functionality(client, mock_db, test_user, moc
     assert b'reorder-list' in response.data
 
 # ----- Analyze data page tests -----
-# TODO: analyze_data
 
 def test_analyze_data_page_requires_login(client):
     """Test that analyze data page redirects to login when user is not logged in"""

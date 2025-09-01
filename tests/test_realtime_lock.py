@@ -1,9 +1,10 @@
 import pytest
 from website.web.models import User
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 from website.web import socketio
 from flask import session
 
+@patch('website.web.sockets.editing_locks', {})
 def test_realtime_editing_lock(app, mock_db):
     """
     Test the real-time editing lock mechanism using two concurrent clients.
@@ -36,10 +37,9 @@ def test_realtime_editing_lock(app, mock_db):
     owner_socket = socketio.test_client(app, flask_test_client=owner_http_client)
     editor_socket = socketio.test_client(app, flask_test_client=editor_http_client)
 
-    # --- הוספת התיקון: ניקוי תור ההודעות לפני תחילת הטסט ---
+    # Clear any existing messages before starting the test
     owner_socket.get_received()
     editor_socket.get_received()
-    # --------------------------------------------------------
 
     # --- Step 1: Owner starts editing, locks the business ---
     owner_socket.emit('start_editing', {'business_name': business_name})
@@ -63,3 +63,92 @@ def test_realtime_editing_lock(app, mock_db):
     received = editor_socket.get_received()
     assert received[0]['name'] == 'business_locked'
     assert received[0]['args'][0]['username'] == 'editor_user'
+
+####### Tests for socket integration in business details editing page #######
+
+def test_edit_business_details_includes_socket_script(client, mock_db, test_user, mock_business):
+    """Test that edit business details page includes socket script and business name"""
+    # Set up user as editor
+    mock_business.editors = {test_user._id}
+    mock_db.get_user_by_username.return_value = test_user
+    mock_db.get_business_by_name.return_value = mock_business
+    
+    with client.session_transaction() as sess:
+        sess['username'] = 'testuser'
+    
+    response = client.get('/edit_business_details/test-business')
+    assert response.status_code == 200
+    
+    # Check that the socket script is included
+    assert b'edit_business_details.js' in response.data
+    
+    # Check that business name is passed to JavaScript
+    assert b'const businessName = "test-business"' in response.data
+
+def test_edit_business_details_socket_connection_available(client, mock_db, test_user, mock_business):
+    """Test that the page includes socket.io connection setup"""
+    # Set up user as editor
+    mock_business.editors = {test_user._id}
+    mock_db.get_user_by_username.return_value = test_user
+    mock_db.get_business_by_name.return_value = mock_business
+    
+    with client.session_transaction() as sess:
+        sess['username'] = 'testuser'
+    
+    response = client.get('/edit_business_details/test-business')
+    assert response.status_code == 200
+    
+    # Check that socket.io is loaded (this is in the base template)
+    assert b'socket.io.js' in response.data
+    assert b'var socket = io();' in response.data
+
+def test_edit_business_details_form_has_correct_action(client, mock_db, test_user, mock_business):
+    """Test that the form has the correct action URL"""
+    # Set up user as editor
+    mock_business.editors = {test_user._id}
+    mock_db.get_user_by_username.return_value = test_user
+    mock_db.get_business_by_name.return_value = mock_business
+    
+    with client.session_transaction() as sess:
+        sess['username'] = 'testuser'
+    
+    response = client.get('/edit_business_details/test-business')
+    assert response.status_code == 200
+    
+    # Check that the form action is correct
+    assert b'action="/edit_business_details/test-business"' in response.data
+
+def test_edit_business_details_cancel_link(client, mock_db, test_user, mock_business):
+    """Test that the cancel link points to the correct business page"""
+    # Set up user as editor
+    mock_business.editors = {test_user._id}
+    mock_db.get_user_by_username.return_value = test_user
+    mock_db.get_business_by_name.return_value = mock_business
+    
+    with client.session_transaction() as sess:
+        sess['username'] = 'testuser'
+    
+    response = client.get('/edit_business_details/test-business')
+    assert response.status_code == 200
+    
+    # Check that the cancel link points to the business page
+    assert b'href="/business_page/test-business"' in response.data
+
+def test_edit_business_details_form_fields_present(client, mock_db, test_user, mock_business):
+    """Test that all required form fields are present"""
+    # Set up user as editor
+    mock_business.editors = {test_user._id}
+    mock_db.get_user_by_username.return_value = test_user
+    mock_db.get_business_by_name.return_value = mock_business
+    
+    with client.session_transaction() as sess:
+        sess['username'] = 'testuser'
+    
+    response = client.get('/edit_business_details/test-business')
+    assert response.status_code == 200
+    
+    # Check that all form fields are present
+    assert b'name="address"' in response.data
+    assert b'name="phone"' in response.data
+    assert b'name="email"' in response.data
+    assert b'type="submit"' in response.data 
