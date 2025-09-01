@@ -14,3 +14,4 @@ matplotlib
 Flask-Limiter
 locust
 Flask-SocketIO
+python-engineio
