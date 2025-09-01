@@ -34,4 +34,10 @@
         </form>
     </div>
 </div>
+
+<script src="{{ url_for('static', filename='edit_business_details.js') }}"></script>
+<script>
+// Pass business name to JavaScript
+const businessName = "{{ business_name }}";
+</script>
 {% endblock %} 
