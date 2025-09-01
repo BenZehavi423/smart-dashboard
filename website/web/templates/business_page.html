@@ -137,7 +137,7 @@ Dashboard
 {% endif %}
 
 <link rel="stylesheet" href="{{ url_for('static', filename='plots.css') }}">
-<script src="{{ url_for('static', filename='profile.js') }}"></script>
+<script src="{{ url_for('static', filename='plots.js') }}"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
   const plotsData = {{ plots|tojson }};

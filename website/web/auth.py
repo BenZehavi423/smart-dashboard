@@ -108,6 +108,24 @@ def login():
                 return redirect(url_for('auth.login'))
     return render_template('login.html'), 200
 
+@auth.route('/login_with_logout')
+def login_with_logout():
+    # If user is logged in, log them out when visiting login page
+    if 'username' in session:
+        session.pop('username', None)
+        flash('You have been logged out.', 'success')
+    
+    return redirect(url_for('auth.login'))
+
+@auth.route('/register_with_logout')
+def register_with_logout():
+    # If user is logged in, log them out when visiting register page
+    if 'username' in session:
+        session.pop('username', None)
+        flash('You have been logged out.', 'success')
+    
+    return redirect(url_for('auth.register'))
+
 
 @auth.route('/logout')
 def logout():

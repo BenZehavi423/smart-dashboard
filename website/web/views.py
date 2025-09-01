@@ -23,6 +23,15 @@ def home():
 
     return render_template('home.html'), 200
 
+@views.route('/home_with_logout')
+def home_with_logout():
+    # If user is logged in, log them out when visiting home page
+    if 'username' in session:
+        session.pop('username', None)
+        flash('You have been logged out.', 'success')
+    
+    return redirect(url_for('views.home'))
+
 @views.route('/profile')
 @login_required
 def profile():
