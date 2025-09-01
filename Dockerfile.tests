@@ -1,0 +1,17 @@
+FROM python:3.10-slim
+
+WORKDIR /app
+
+COPY ./website/requirements.txt ./website/
+COPY ./llm_service/requirements.txt ./llm_service/
+
+# Install the Python dependencies from the copied requirements files.
+# The --no-cache-dir flag is used to avoid storing cached packages, which keeps the image size small.
+RUN pip install --no-cache-dir -r ./website/requirements.txt
+RUN pip install --no-cache-dir -r ./llm_service/requirements.txt
+
+COPY . .
+
+ENV TESTING=True
+
+CMD ["pytest", "tests/"]

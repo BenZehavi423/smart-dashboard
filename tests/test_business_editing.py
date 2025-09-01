@@ -83,3 +83,32 @@ def test_edit_business_details_business_not_found(client, mock_db, test_user):
     
     response = client.get('/edit_business_details/nonexistent-business')
     assert response.status_code == 404 
+
+def test_edit_business_details_post_fails_for_non_editor(client, mock_db, test_user, mock_business):
+    """
+    Test that a POST request to edit business details fails for a non-editor user
+    """
+    # Set up user as non-editor by assigning a different owner
+    mock_business.owner = "owner_id_different_from_test_user"
+    mock_business.editors = {"other_user_id"}  # Make sure our test user isn't in the editor list
+
+    mock_db.get_user_by_username.return_value = test_user
+    mock_db.get_business_by_name.return_value = mock_business
+    
+    with client.session_transaction() as sess:
+        sess['username'] = 'testuser'
+    
+    data = {
+        'address': 'New Address',
+        'phone': '123-456-7890',
+        'email': 'new@example.com'
+    }
+    
+    response = client.post('/edit_business_details/test-business', data=data)
+    
+    # We expect a 403 Forbidden status code because the user is not authorized
+    assert response.status_code == 403
+    assert b'You do not have permission to edit this business' in response.data
+    
+    # Verify that the database was NOT updated
+    mock_db.update_business.assert_not_called()
