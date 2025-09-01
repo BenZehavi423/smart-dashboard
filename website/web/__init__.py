@@ -10,8 +10,7 @@ from flask_socketio import SocketIO
 socketio = SocketIO()
 def create_app():
     app = Flask(__name__)
-    app.secret_key = "very-secret-key"  # 🔒 REPLACE in production
-
+    app.secret_key = os.environ.get("FLASK_SECRET_KEY", "default_secret_key_for_development")
     # Initialize the rate limiter
     limiter = Limiter(
         get_remote_address,

@@ -669,3 +669,27 @@ def edit_profile_details():
         return redirect(url_for('views.profile'))
     
     return render_template('edit_profile_details.html', user=user)
+
+
+@views.route('/delete_user', methods=['POST'])
+@login_required
+def delete_user():
+    """
+    Allows a logged-in user to delete their own account.
+    """
+    username = session.get('username')
+    user = current_app.db.get_user_by_username(username)
+
+    if user:
+        # First, delete all businesses owned by the user
+        owned_businesses = current_app.db.get_businesses_for_owner(user._id)
+        for business in owned_businesses:
+            current_app.db.delete_business(business._id, user._id)
+
+        # Now, delete the user themselves
+        current_app.db.delete_user(user._id)
+        session.clear()  # Clear the session after deletion
+        logger.info(f"User {username} and all their data has been deleted.")
+        return jsonify({'success': True, 'message': 'User deleted successfully.'}), 200
+
+    return jsonify({'success': False, 'error': 'User not found.'}), 404
