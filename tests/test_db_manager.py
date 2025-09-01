@@ -11,21 +11,17 @@ def mock_mongo_collections():
         mock_businesses = MagicMock()
         mock_users = MagicMock()
         mock_files = MagicMock()
-        mock_datasets = MagicMock()
         mock_analysis = MagicMock()
         mock_plots = MagicMock()
-        mock_dashboards = MagicMock()
-        
+
         # Set up the mock client to return our mock database
         mock_db = MagicMock()
         mock_db.__getitem__.side_effect = lambda name: {
             'businesses': mock_businesses,
             'users': mock_users,
             'files': mock_files,
-            'datasets': mock_datasets,
             'analysis_results': mock_analysis,
             'plots': mock_plots,
-            'dashboards': mock_dashboards
         }[name]
         
         mock_client.return_value.__getitem__.return_value = mock_db
@@ -37,11 +33,9 @@ def mock_mongo_collections():
         db_manager.businesses = mock_businesses
         db_manager.users = mock_users
         db_manager.files = mock_files
-        db_manager.datasets = mock_datasets
         db_manager.analysis = mock_analysis
         db_manager.plots = mock_plots
-        db_manager.dashboards = mock_dashboards
-        
+
         yield db_manager
 
 

@@ -6,7 +6,6 @@ from .models import Plot, Business
 from .validation import Validator
 from .logger import logger
 import requests
-from .llm_client import generate_insights_for_file
 from .plot_generator import generate_plot_image
 
 # Blueprint lets us organize routes into different files
@@ -100,24 +99,6 @@ def upload_files(business_name):
     user_files = current_app.db.get_files_for_business(business)
     return render_template('upload_files.html', files=user_files, business_name=business_name)
 
-@views.route('/ask_llm', methods=['POST'])
-@login_required
-def ask_llm():
-    data = request.get_json()
-    query = data.get('query')
-
-    if not query:
-        return jsonify({'error': 'Query is required'}), 400
-
-    try:
-        # The service name 'llm_service' is used as the hostname
-        llm_api_url = 'http://llm_service:5001/predict'
-        response = requests.post(llm_api_url, json={'query': query})
-        response.raise_for_status()  # Raises an exception for 4xx/5xx errors
-        return jsonify(response.json())
-    except requests.exceptions.RequestException as e:
-        # Log the error e
-        return jsonify({'error': 'The LLM service is currently unavailable.'}), 503
 
 @views.route('/edit_plots/<business_name>', methods=['GET', 'POST'])
 @login_required
@@ -301,28 +282,17 @@ def save_generated_plot(business_name):
         logger.error(f"Failed to save plot for user {username}: {e}", extra_fields={'user_id': user._id})
         return jsonify({'success': False, 'error': 'An internal error occurred.'}), 500
 
-@views.route('/dashboard', methods=['GET'])
-@login_required
-def dashboard():
-    username = session.get('username')
-    user = current_app.db.get_user_by_username(username)
 
-    logger.info(f"Dashboard page accessed by user: {username}",
-                extra_fields={'user_id': user._id, 'action': 'dashboard_access'})
-    
-    dashboard_doc = current_app.db.get_dashboard_for_user(user._id)
-
-    return render_template('dashboard.html', user=user, dashboard=dashboard_doc), 200
 
 @views.route('/dashboard/files', methods=['GET'])
 @login_required
 def list_user_files():
     username = session.get('username')
     user = current_app.db.get_user_by_username(username)
-    
+
     # Get all businesses the user has access to (as owner or editor)
     user_businesses = current_app.db.get_businesses_for_editor(user._id)
-    
+
     # Get files from all businesses
     all_files = []
     for business in user_businesses:
@@ -341,49 +311,6 @@ def list_user_files():
         for f in all_files
     ]
     return jsonify({'files': files_payload}), 200
-
-@views.route('/dashboard/create', methods=['POST'])
-@login_required
-def create_dashboard():
-    # Identify current user
-    username = session.get('username')
-    user = current_app.db.get_user_by_username(username)
-
-    payload = request.get_json(silent=True) or {}
-    logger.info(f"User {username} initiated dashboard creation",
-                extra_fields={'user_id': user._id, 'payload': payload})
-    
-    file_id = payload.get('file_id') or request.form.get('file_id')
-    if not file_id:
-        logger.warning(f"User {username} tried to create dashboard without selecting file",
-                       extra_fields={'user_id': user._id})
-        return jsonify({"success": False, "error": "Please select a file to generate a dashboard."}), 400
-    
-    # Sanitize file_id
-    file_id = Validator.sanitize_input(str(file_id))
-
-    f = current_app.db.get_file(file_id)
-    if not f or f.user_id != user._id:
-        logger.warning(f"Unauthorized dashboard creation attempt by {username}",
-                       extra_fields={'user_id': user._id, 'file_id': file_id})
-        return jsonify({"success": False, "error": "You are not authorized to use the selected file."}), 403
-
-    try:
-        # Generate insights from available file (preview-based prompt to LLM)
-        file_id, insights = generate_insights_for_file(file_id) 
-
-        # Persist a new dashboard entry (we keep history by creating a new doc each time)
-        current_app.db.create_dashboard(user_id=user._id, file_id=file_id, insights=insights)
-
-        logger.info("Dashboard created", extra_fields={'user_id': user._id, 'file_id': file_id})
-        flash("Dashboard created successfully", "success")
-
-        return jsonify({"success": True, "redirect": url_for('views.dashboard')}), 200
-    
-    except Exception as e:
-        logger.error(f"Failed to create dashboard: {e}", extra_fields={'user_id': user._id, 'file_id': file_id})
-        return jsonify({"success": False, "error": "An unexpected error occurred while creating the dashboard."}), 500
-
 
 @views.route('/business_page/<business_name>')
 @login_required
