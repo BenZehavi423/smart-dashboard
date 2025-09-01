@@ -224,3 +224,8 @@ def mock_presented_plots_ordered(mock_db, sample_plots):
     
     mock_db.get_presented_plots_for_business_ordered.return_value = presented_plots
     return presented_plots 
+
+@pytest.fixture
+def app_context(app):
+    with app.app_context():
+        yield

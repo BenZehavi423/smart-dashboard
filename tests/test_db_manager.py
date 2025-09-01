@@ -128,3 +128,26 @@ def test_update_user(mock_mongo_collections):
         {"_id": "user123"}, 
         {"$set": updates}
     ) 
+
+
+
+
+def test_delete_business_cascades_deletion(mock_mongo_collections):
+    """Test that deleting a business also deletes its files and plots."""
+    business_id = "business123"
+    
+    # Mock the return values for deletion operations to simulate success
+    mock_mongo_collections.businesses.delete_one.return_value = MagicMock(deleted_count=1)
+    mock_mongo_collections.files.delete_many.return_value = MagicMock(deleted_count=2)
+    mock_mongo_collections.plots.delete_many.return_value = MagicMock(deleted_count=3)
+    
+    # Call the delete function on the mock DB manager
+    result = mock_mongo_collections.delete_business(business_id)
+    
+    # Assertions to verify the outcome
+    assert result == True
+    
+    # Verify that the correct delete operations were called with the correct parameters
+    mock_mongo_collections.files.delete_many.assert_called_with({"business_id": business_id})
+    mock_mongo_collections.plots.delete_many.assert_called_with({"business_id": business_id})
+    mock_mongo_collections.businesses.delete_one.assert_called_with({"_id": business_id})

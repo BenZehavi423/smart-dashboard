@@ -22,7 +22,7 @@ def build_plot_generation_prompt(user_prompt: str, df_preview: pd.DataFrame) -> 
         "**User Request:**",
         f'"{user_prompt}"',
         "",
-        "**Data Sample (first 5 rows of the DataFrame 'df'):**",
+        "**Data Sample (first 100 rows of the DataFrame 'df'):**",
         df_preview.to_string(),
         "",
         "---",

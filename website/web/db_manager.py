@@ -341,12 +341,23 @@ class MongoDBManager:
 
     def delete_business(self, business_id: str) -> bool:
         """
-        Deletes a business entry
+        Deletes a business entry anf all associated data
         :param business_id: ID of the business to delete
         :return: True if at least one doc was deleted, otherwise False
         """
-        result = self.businesses.delete_one({"_id": business_id})
-        return result.deleted_count > 0
+        # Delete all files associated with the business
+        files_result = self.files.delete_many({"business_id": business_id})
+        logger.info(f"Deleted {files_result.deleted_count} files for business {business_id}")
+
+        # Step 2: Delete all plots associated with the business
+        plots_result = self.plots.delete_many({"business_id": business_id})
+        logger.info(f"Deleted {plots_result.deleted_count} plots for business {business_id}")
+
+        # Step 3: Delete the business itself
+        business_result = self.businesses.delete_one({"_id": business_id})
+        logger.info(f"Deleted {business_result.deleted_count} business entry for {business_id}")
+
+        return business_result.deleted_count > 0
 
     def get_businesses_for_owner(self, owner_id: str) -> List[Business]:
         """

@@ -35,7 +35,7 @@ services:
       ports: # default Mongo port
         - "27017:27017"
       volumes: # Persist database files on the host
-        - C:\Users\benze\OneDrive - Technion\Ben&Yamit:/data/db
+        - ./data/db:/data/db
       networks:
         - my-network
 
@@ -54,7 +54,29 @@ services:
     depends_on:
       - db
 
+  test_runner:
+    build:
+      context: .
+      dockerfile: Dockerfile.tests
+    container_name: test_runner
+    volumes:
+      - .:/app
+    networks:
+      - my-network
+
+    env_file:
+      - ./.env
+
+    depends_on:
+      - web
+      - db
+      - llm_service
 
 
 networks: # Define a custom network for service communication
   my-network:
+
+
+
+
+    

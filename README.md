@@ -34,4 +34,18 @@ docker-compose up --build
 This will build the necessary Docker images and start all the services. The web application will be available at http://localhost:5000.
 
 **🧪 Running the Tests**<br>
-*Need to implement* 
+### How to Run Tests
+1.  **Start the project services**: Ensure the main application services (web, llm_service, db) are running in the background. Integration tests depend on them being available.
+    ```bash
+    docker-compose up -d
+    ```
+
+2.  **Run the test container**: Use the `docker-compose run` command to launch the dedicated `test_runner` container. This container will execute all `pytest` tests and print the results to the console.
+    ```bash
+    docker-compose run test_runner
+    ```
+
+3.  **Stop the services**: Once the tests are complete, you can stop all the running containers.
+    ```bash
+    docker-compose down
+    ```
