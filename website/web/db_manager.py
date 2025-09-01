@@ -11,7 +11,6 @@ class MongoDBManager:
         self.client = MongoClient(uri)
         self.db = self.client[db_name]
         self.files = self.db["files"]
-        self.datasets = self.db["datasets"]
         self.analysis = self.db["analysis_results"]
         self.users = self.db["users"]
         self.plots = self.db["plots"]
