@@ -2,6 +2,8 @@ services:
   web: # Our Flask web application
     build: # Build image from Dockerfile in./web directory
       context: ./website
+    env_file:
+      - ./.env #load the secret key
     container_name: smart_dashboard_web
     ports: # Map host port 5000 to container port 5000
       - "5000:5000"
