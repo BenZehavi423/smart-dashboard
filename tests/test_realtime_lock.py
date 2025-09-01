@@ -2,8 +2,8 @@ import pytest
 from website.web.models import User
 from unittest.mock import MagicMock
 from website.web import socketio
+from flask import session
 
-# Use the app fixture from conftest.py
 def test_realtime_editing_lock(app, mock_db):
     """
     Test the real-time editing lock mechanism using two concurrent clients.
@@ -23,7 +23,6 @@ def test_realtime_editing_lock(app, mock_db):
     mock_db.get_business_by_name.return_value = mock_business
 
     # 2. Create and configure two separate Flask test clients
-    # Note: These clients are used to handle the session/login.
     owner_http_client = app.test_client()
     editor_http_client = app.test_client()
 
@@ -36,6 +35,11 @@ def test_realtime_editing_lock(app, mock_db):
     # Now, create SocketIO clients with the correct headers from the http client sessions
     owner_socket = socketio.test_client(app, flask_test_client=owner_http_client)
     editor_socket = socketio.test_client(app, flask_test_client=editor_http_client)
+
+    # --- הוספת התיקון: ניקוי תור ההודעות לפני תחילת הטסט ---
+    owner_socket.get_received()
+    editor_socket.get_received()
+    # --------------------------------------------------------
 
     # --- Step 1: Owner starts editing, locks the business ---
     owner_socket.emit('start_editing', {'business_name': business_name})
