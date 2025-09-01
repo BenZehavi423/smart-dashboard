@@ -19,7 +19,7 @@ Register
   {% endif %}
 {% endwith %}
 
-  <form class="auth-form" method="POST" action="{{ url_for('auth.register') }}">
+  <form class="auth-form" method="POST" action="{{ url_for('auth.register') }}" id="registerForm">
     <div class="form-row">
       <label for="username">Username</label>
       <input type="text" id="username" name="username" required />
@@ -30,6 +30,34 @@ Register
     </div>
     <button type="submit" class="button green">Sign Up</button>
   </form>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const usernameField = document.getElementById('username');
+      const passwordField = document.getElementById('password');
+      
+      // Show initial requirements
+      window.validator.showDetailedRequirements(usernameField, window.validator.getUsernameRequirements(''));
+      window.validator.showDetailedRequirements(passwordField, window.validator.getPasswordRequirements(''));
+      
+      // Update requirements on input
+      usernameField.addEventListener('input', function() {
+        const requirements = window.validator.getUsernameRequirements(this.value);
+        window.validator.showDetailedRequirements(this, requirements);
+      });
+      
+      passwordField.addEventListener('input', function() {
+        const requirements = window.validator.getPasswordRequirements(this.value);
+        window.validator.showDetailedRequirements(this, requirements);
+      });
+      
+      // Initialize form validation
+      window.validator.initFormValidation('registerForm', {
+        username: { type: 'username', required: true, label: 'Username' },
+        password: { type: 'password', required: true, label: 'Password' }
+      });
+    });
+  </script>
 
   <p class="auth-switch">Already have an account?<a class="button blue" href="{{ url_for('auth.login') }}">Log In</a></p>
 </div>

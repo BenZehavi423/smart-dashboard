@@ -11,14 +11,14 @@
         <h1>Edit Profile</h1>
         <h2>{{ user.username }}</h2>
         
-        <form method="POST" action="{{ url_for('views.edit_profile_details') }}">
+        <form method="POST" action="{{ url_for('views.edit_profile_details') }}" id="editProfileForm">
             <div class="form-group">
                 <label for="email">Email</label>
                 <input type="email" id="email" name="email" value="{{ user.email or '' }}">
             </div>
             
             <div class="form-group">
-                <label for="phone">Phone Number</label>
+                <label>Phone Number</label>
                 <input type="tel" id="phone" name="phone" value="{{ user.phone or '' }}">
             </div>
             
@@ -27,6 +27,15 @@
                 <a href="{{ url_for('views.profile') }}" class="btn btn-secondary">Cancel</a>
             </div>
         </form>
+
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                window.validator.initFormValidation('editProfileForm', {
+                    email: { type: 'email', required: false, label: 'Email' },
+                    phone: { type: 'phone', required: false, label: 'Phone Number' }
+                });
+            });
+        </script>
     </div>
 </div>
 {% endblock %} 

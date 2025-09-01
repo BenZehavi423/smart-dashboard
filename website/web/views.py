@@ -3,6 +3,7 @@ import os
 from .auth import login_required
 from .csv_processor import process_file
 from .models import Plot, Business
+from .validation import Validator
 from .logger import logger
 import requests
 from .llm_client import generate_insights_for_file
@@ -39,9 +40,6 @@ def profile():
                            owned_businesses=owned_businesses,
                            shared_businesses=shared_businesses), 200
 
-def allowed_file(filename):
-    return '.' in filename and filename.rsplit('.', 1)[1].lower() == 'csv'
-
 @views.route('/upload_files/<business_name>', methods=['GET', 'POST'])
 @login_required
 def upload_files(business_name):
@@ -67,23 +65,29 @@ def upload_files(business_name):
         failed_files = []
 
         for file in files:
-            if file and file.filename and allowed_file(file.filename):
-                logger.debug(f"Processing file: {file.filename}")
-                try:              
-                    #Process the file and attach business_id + preview
-                    processed_file = process_file(file, business._id)
-                    current_app.db.create_file(processed_file)
-                    logger.info(f"File {file.filename} uploaded successfully for user {user.username}")
+            try:
+                # Validate file using the Validator class
+                file_valid, file_error = Validator.validate_file(file)
+                
+                if file_valid:
+                    logger.debug(f"Processing file: {file.filename}")
+                    try:              
+                        #Process the file and attach business_id + preview
+                        processed_file = process_file(file, business._id)
+                        current_app.db.create_file(processed_file)
+                        logger.info(f"File {file.filename} uploaded successfully for user {user.username}")
 
-                except Exception as e:
-                    # If processing fails, log the error
-                    logger.error(f"Failed to process file {file.filename} for user {user.username}: {e}")
-                    failed_files.append(f"{file.filename}: {str(e)}")
-
-            # If file is not valid, log the error
-            else:
-                logger.warning(f"Invalid file upload attempt by user {user.username}: {getattr(file, 'filename', 'unknown')}")
-                failed_files.append(f"Invalid file: {getattr(file, 'filename', 'unknown')}")
+                    except Exception as e:
+                        # If processing fails, log the error
+                        logger.error(f"Failed to process file {file.filename} for user {user.username}: {e}")
+                        failed_files.append(f"{file.filename}: {str(e)}")
+                else:
+                    logger.warning(f"Invalid file upload attempt by user {user.username}: {getattr(file, 'filename', 'unknown')} - {file_error}")
+                    failed_files.append(f"{getattr(file, 'filename', 'unknown')}: {file_error}")
+            except Exception as e:
+                # Handle any unexpected errors during validation
+                logger.error(f"Unexpected error during file validation for user {user.username}: {e}")
+                failed_files.append(f"{getattr(file, 'filename', 'unknown')}: Unexpected error during validation")
 
         # Return JSON response to the frontend
         return jsonify({
@@ -139,14 +143,15 @@ def edit_plots(business_name):
         plot_updates = data.get('plot_updates', [])
         plot_order = data.get('plot_order', [])
 
-        logger.info(f"User {username} saving plot changes for business '{business_name}'",
+        logger.info(f"User {username} saving plot changes: {len(plot_updates)} updates, {len(plot_order)} plots in order",
                     extra_fields={'user_id': user._id, 'updates_count': len(plot_updates),
                                   'order_length': len(plot_order)})
 
         success = current_app.db.save_plot_changes_for_business(business._id, plot_updates, plot_order)
 
         if success:
-            logger.info(f"Plot changes saved successfully for user {username}")
+            logger.info(f"Plot changes saved successfully for user {username}",
+                        extra_fields={'user_id': user._id, 'presented_plots': len(plot_order)})
         else:
             logger.error(f"Failed to save plot changes for user {username}")
 
@@ -177,6 +182,11 @@ def edit_plots(business_name):
         'is_presented': p.is_presented
     } for p in ordered_presented_plots]
 
+    # Log the page render with plot statistics
+    presented_count = len([p for p in all_plots if p.is_presented])
+    logger.info(f"Edit plots page rendered for user {username}: {len(all_plots)} total plots, {presented_count} presented",
+                extra_fields={'user_id': user._id, 'total_plots': len(all_plots), 'presented_plots': presented_count})
+
     return render_template('edit_plots.html',
                            user=user,
                            all_plots=all_plots_data,
@@ -197,10 +207,19 @@ def analyze_data(business_name):
         # This now handles the plot generation request from the new frontend
         data = request.get_json()
         file_id = data.get('file_id')
-        prompt = data.get('prompt')
+        prompt = data.get('prompt', '').strip()
+        
+        # Sanitize inputs
+        file_id = Validator.sanitize_input(str(file_id))
+        prompt = Validator.sanitize_input(prompt)
 
-        if not file_id or not prompt:
-            return jsonify({'success': False, 'error': 'File ID and prompt are required.'}), 400
+        if not file_id:
+            return jsonify({'success': False, 'error': 'File ID is required.'}), 400
+        
+        # Validate prompt
+        prompt_valid, prompt_error = Validator.validate_analysis_prompt(prompt)
+        if not prompt_valid:
+            return jsonify({'success': False, 'error': prompt_error}), 400
 
         try:
             # Call our new plot generation function
@@ -226,12 +245,21 @@ def save_generated_plot(business_name):
 
     data = request.get_json()
 
-    image_name = data.get('image_name')
+    image_name = data.get('image_name', '').strip()
     image_data = data.get('image_data')
     based_on_file = data.get('based_on_file')
+    
+    # Sanitize inputs
+    image_name = Validator.sanitize_input(image_name)
+    based_on_file = Validator.sanitize_input(str(based_on_file))
 
-    if not all([image_name, image_data, based_on_file]):
+    if not image_data or not based_on_file:
         return jsonify({'success': False, 'error': 'Missing required data to save plot.'}), 400
+    
+    # Validate plot name
+    name_valid, name_error = Validator.validate_plot_name(image_name)
+    if not name_valid:
+        return jsonify({'success': False, 'error': name_error}), 400
 
     try:
         # Create a new Plot object and save it to the database
@@ -311,6 +339,9 @@ def create_dashboard():
         logger.warning(f"User {username} tried to create dashboard without selecting file",
                        extra_fields={'user_id': user._id})
         return jsonify({"success": False, "error": "Please select a file to generate a dashboard."}), 400
+    
+    # Sanitize file_id
+    file_id = Validator.sanitize_input(str(file_id))
 
     f = current_app.db.get_file(file_id)
     if not f or f.user_id != user._id:
@@ -403,7 +434,11 @@ def add_editor(business_name):
     
     # Get the username to add as editor
     editor_username = request.form.get('username', '').strip()
-    if not editor_username:
+    
+    # Validate username
+    username_valid, username_error = Validator.validate_username(editor_username)
+    if not username_valid:
+        flash(username_error, 'error')
         return redirect(url_for('views.business_page', business_name=business_name))
     
     # Find the user by username
@@ -449,9 +484,13 @@ def remove_editor(business_name):
         return render_template('error.html', error='Only the business owner can remove editors'), 403
     
     # Get the editor ID to remove
-    editor_id = request.form.get('editor_id')
+    editor_id = request.form.get('editor_id', '').strip()
     if not editor_id:
+        flash('Editor ID is required', 'error')
         return redirect(url_for('views.business_page', business_name=business_name))
+    
+    # Sanitize and validate editor_id
+    editor_id = Validator.sanitize_input(editor_id)
     
     # Check if trying to remove the owner
     if editor_id == business.owner:
@@ -495,10 +534,31 @@ def new_business():
         phone = request.form.get('phone', '').strip()
         email = request.form.get('email', '').strip()
         
-        # Validate mandatory fields
-        if not name:
+        # Sanitize inputs
+        name = Validator.sanitize_input(name)
+        address = Validator.sanitize_input(address)
+        phone = Validator.sanitize_input(phone)
+        email = Validator.sanitize_input(email)
+        
+        # Validate all fields
+        validation_rules = {
+            'name': {'type': 'business_name', 'required': True, 'label': 'Business name'},
+            'address': {'type': 'address', 'required': False, 'label': 'Address'},
+            'phone': {'type': 'phone', 'required': False, 'label': 'Phone'},
+            'email': {'type': 'email', 'required': False, 'label': 'Email'}
+        }
+        
+        errors = Validator.validate_form_data({
+            'name': name,
+            'address': address,
+            'phone': phone,
+            'email': email
+        }, validation_rules)
+        
+        if errors:
+            error_message = list(errors.values())[0]  # Show first error
             return render_template('new_business.html', 
-                                 error='Business name is required',
+                                 error=error_message,
                                  form_data={'name': name, 'address': address, 'phone': phone, 'email': email})
         
         # Check if business name already exists
@@ -558,6 +618,29 @@ def edit_business_details(business_name):
         phone = request.form.get('phone', '').strip()
         email = request.form.get('email', '').strip()
         
+        # Sanitize inputs
+        address = Validator.sanitize_input(address)
+        phone = Validator.sanitize_input(phone)
+        email = Validator.sanitize_input(email)
+        
+        # Validate fields
+        validation_rules = {
+            'address': {'type': 'address', 'required': False, 'label': 'Address'},
+            'phone': {'type': 'phone', 'required': False, 'label': 'Phone'},
+            'email': {'type': 'email', 'required': False, 'label': 'Email'}
+        }
+        
+        errors = Validator.validate_form_data({
+            'address': address,
+            'phone': phone,
+            'email': email
+        }, validation_rules)
+        
+        if errors:
+            error_message = list(errors.values())[0]
+            flash(error_message, 'error')
+            return redirect(url_for('views.edit_business_details', business_name=business_name))
+        
         # Update business in database
         update_data = {}
         if address != business.address:
@@ -586,6 +669,26 @@ def edit_profile_details():
         # Update user details
         email = request.form.get('email', '').strip()
         phone = request.form.get('phone', '').strip()
+        
+        # Sanitize inputs
+        email = Validator.sanitize_input(email)
+        phone = Validator.sanitize_input(phone)
+        
+        # Validate fields
+        validation_rules = {
+            'email': {'type': 'email', 'required': False, 'label': 'Email'},
+            'phone': {'type': 'phone', 'required': False, 'label': 'Phone'}
+        }
+        
+        errors = Validator.validate_form_data({
+            'email': email,
+            'phone': phone
+        }, validation_rules)
+        
+        if errors:
+            error_message = list(errors.values())[0]
+            flash(error_message, 'error')
+            return redirect(url_for('views.edit_profile_details'))
         
         # Update user in database
         update_data = {}

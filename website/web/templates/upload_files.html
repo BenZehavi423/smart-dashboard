@@ -58,6 +58,31 @@ uploadForm.addEventListener('submit', function(e) {
   e.preventDefault(); // Prevent default form submission
   // Clear previous error messages
   errorMessages.textContent = '';
+  
+  // Validate files before upload
+  const files = fileElem.files;
+  if (files.length === 0) {
+    window.validator.showErrorNotification('Please select at least one file to upload.');
+    return;
+  }
+  
+  // Validate each file and collect all errors
+  const errors = [];
+  for (let i = 0; i < files.length; i++) {
+    const file = files[i];
+    const validation = window.validator.validateFile(file, ['.csv'], 10 * 1024 * 1024); // 10MB limit
+    
+    if (!validation.isValid) {
+      errors.push(`${file.name}: ${validation.message}`);
+    }
+  }
+  
+  // Show all errors if any
+  if (errors.length > 0) {
+    window.validator.showErrorNotification(errors.join('\n'));
+    return;
+  }
+  
   let formData = new FormData(uploadForm);
 
   //Send file(s) asynchronously to the backend (AJAX POST)
@@ -68,6 +93,7 @@ uploadForm.addEventListener('submit', function(e) {
   .then(response => response.json())
   .then(data => {
     if (data.success) {
+      window.validator.showSuccess('Files uploaded successfully!');
       
       // Update file list
       fileList.innerHTML = '';
@@ -80,11 +106,12 @@ uploadForm.addEventListener('submit', function(e) {
       fileElem.value = '';
       fileLabel.textContent = 'or drag files here';
     } else {
-      errorMessages.textContent = data.errors.join('\n');
+      const errorMsg = data.failed_files ? data.failed_files.join(', ') : 'Upload failed.';
+      window.validator.showErrorNotification(errorMsg);
     }
   })
   .catch(err => {
-    errorMessages.textContent = 'Upload failed.';
+    window.validator.showErrorNotification('Upload failed. Please try again.');
   });
 });
 </script>

@@ -20,7 +20,7 @@ Analyze My Data
 
         <div class="form-group">
             <label for="analysis-prompt">Describe your desired plot:</label>
-            <textarea id="analysis-prompt" class="form-control" rows="4" placeholder="e.g., 'Create a bar chart of total sales per city' or 'Show a scatter plot of age vs. income'"></textarea>
+            <textarea id="analysis-prompt" name="analysis-prompt" class="form-control" rows="4" placeholder="e.g., 'Create a bar chart of total sales per city' or 'Show a scatter plot of age vs. income'"></textarea>
         </div>
 
         <div class="form-actions">
@@ -34,7 +34,7 @@ Analyze My Data
         <div id="plot-output" class="plot-output-container">
             </div>
         <div id="plot-actions" class="plot-actions-container" style="display: none;">
-            <input type="text" id="plot-name-input" class="form-control" placeholder="Enter a name for your plot...">
+            <input type="text" id="plot-name-input" name="plot-name" class="form-control" placeholder="Enter a name for your plot...">
             <button id="save-plot-btn" class="button green">Save to Profile</button>
             <button id="generate-another-btn" class="button">Create Another</button>
         </div>
