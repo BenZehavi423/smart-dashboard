@@ -9,7 +9,7 @@ editing_locks = {}
 @socketio.on('start_editing')
 def handle_start_editing(data):
     """
-    Called when a user enters the 'Edit Plots' page for a business.
+    Called when a user enters any editing page for a business (plots or details).
     """
     business_name = data['business_name']
     username = session.get('username')
@@ -29,7 +29,7 @@ def handle_start_editing(data):
 @socketio.on('stop_editing')
 def handle_stop_editing(data):
     """
-    Called when a user leaves the 'Edit Plots' page.
+    Called when a user leaves any editing page for a business.
     """
     business_name = data['business_name']
     username = session.get('username')

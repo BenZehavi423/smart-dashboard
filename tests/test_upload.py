@@ -38,7 +38,7 @@ def test_upload_invalid_file_type(client, mock_db, test_user, mock_txt_file, moc
     # Ensure failure in response
     assert response.status_code == 200
     assert response.json['success'] is False
-    assert 'Invalid file' in response.json['failed_files'][0]
+    assert 'File type not allowed' in response.json['failed_files'][0]
 
 # Test uploading both valid and invalid files together
 def test_upload_mixed_files(client, mock_db, test_user, mock_mixed_files, mock_business):
@@ -55,4 +55,4 @@ def test_upload_mixed_files(client, mock_db, test_user, mock_mixed_files, mock_b
     # One file should succeed, one should fail
     assert response.status_code == 200
     assert response.json['success'] is False
-    assert any('Invalid file' in err for err in response.json['failed_files'])
+    assert any('File type not allowed' in err for err in response.json['failed_files'])

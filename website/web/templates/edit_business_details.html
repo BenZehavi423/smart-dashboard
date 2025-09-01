@@ -11,7 +11,7 @@
         <h1>Edit Business Details</h1>
         <h2>{{ business.name }}</h2>
         
-        <form method="POST" action="{{ url_for('views.edit_business_details', business_name=business_name) }}">
+        <form method="POST" action="{{ url_for('views.edit_business_details', business_name=business_name) }}" id="editBusinessForm">
             <div class="form-group">
                 <label for="address">Address</label>
                 <input type="text" id="address" name="address" value="{{ business.address or '' }}">
@@ -32,6 +32,22 @@
                 <a href="{{ url_for('views.business_page', business_name=business_name) }}" class="btn btn-secondary red">Cancel</a>
             </div>
         </form>
+
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                window.validator.initFormValidation('editBusinessForm', {
+                    address: { type: 'address', required: false, label: 'Address' },
+                    phone: { type: 'phone', required: false, label: 'Phone Number' },
+                    email: { type: 'email', required: false, label: 'Email' }
+                });
+            });
+        </script>
     </div>
 </div>
+
+<script src="{{ url_for('static', filename='edit_business_details.js') }}"></script>
+<script>
+// Pass business name to JavaScript
+const businessName = "{{ business_name }}";
+</script>
 {% endblock %} 

@@ -60,7 +60,7 @@ def test_file_validation_non_csv_rejected(client, mock_db, test_user, mock_txt_f
     data = response.get_json()
     assert data['success'] == False
     assert len(data['failed_files']) == 1
-    assert 'Invalid file: test.txt' in data['failed_files'][0]
+    assert 'File type not allowed' in data['failed_files'][0]
 
 def test_multiple_files_upload(client, mock_db, test_user, mock_multiple_csv_files, mock_business):
     """Test uploading multiple files at once"""
@@ -108,7 +108,7 @@ def test_mixed_files_upload_some_valid_some_invalid(client, mock_db, test_user, 
         data = response.get_json()
         assert data['success'] == False
         assert len(data['failed_files']) == 1
-        assert 'Invalid file: invalid.txt' in data['failed_files'][0]
+        assert 'File type not allowed' in data['failed_files'][0]
 
 def test_empty_file_upload(client, mock_db, test_user, mock_empty_csv_file, mock_business):
     """Test uploading an empty file"""
@@ -125,10 +125,10 @@ def test_empty_file_upload(client, mock_db, test_user, mock_empty_csv_file, mock
     
     assert response.status_code == 200
     data = response.get_json()
-    # Empty CSV files currently cause an error in processing
+    # Empty CSV files are now caught by validation
     assert data['success'] == False
     assert len(data['failed_files']) == 1
-    assert 'Failed to parse CSV' in data['failed_files'][0]
+    assert 'File is empty' in data['failed_files'][0]
 
 def test_upload_page_displays_user_files(client, mock_db, test_user, mock_processed_file, mock_business):
     """Test that upload page displays user's existing files"""

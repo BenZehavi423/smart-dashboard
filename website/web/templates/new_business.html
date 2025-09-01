@@ -23,7 +23,7 @@
         </div>
         {% endif %}
         
-        <form method="POST" action="{{ url_for('views.new_business') }}">
+        <form method="POST" action="{{ url_for('views.new_business') }}" id="newBusinessForm">
             <div class="form-group">
                 <label for="name">Business Name *</label>
                 <input type="text" id="name" name="name" value="{{ form_data.name if form_data else '' }}" required>
@@ -49,6 +49,17 @@
                 <a href="{{ url_for('views.profile') }}" class="btn btn-secondary red">Cancel</a>
             </div>
         </form>
+
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                window.validator.initFormValidation('newBusinessForm', {
+                    name: { type: 'business_name', required: true, label: 'Business Name' },
+                    address: { type: 'address', required: false, label: 'Address' },
+                    phone: { type: 'phone', required: false, label: 'Phone Number' },
+                    email: { type: 'email', required: false, label: 'Email' }
+                });
+            });
+        </script>
     </div>
 </div>
 {% endblock %}

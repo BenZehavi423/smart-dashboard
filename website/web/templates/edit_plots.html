@@ -74,6 +74,9 @@ Edit Plots
 <link rel="stylesheet" href="{{ url_for('static', filename='plots.css') }}">
 <script src="{{ url_for('static', filename='edit_plots.js') }}"></script>
 <script>
+// Pass business name to JavaScript
+const businessName = "{{ business_name }}";
+
 // Initialize data from server
 document.addEventListener('DOMContentLoaded', function() {
     const allPlots = {{ all_plots|tojson }};

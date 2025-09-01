@@ -9,7 +9,6 @@ Dashboard
 
 {% block content %}
 
-<!-- TODO: change to business name -->
 <h1 class="page-title">{{ business.name }}</h1> 
 
 <div class="dashboard-section">
@@ -34,7 +33,7 @@ Dashboard
   <div class="editor-management">
     <div class="add-editor-form">
       <h3>Add Editor</h3>
-      <form method="POST" action="{{ url_for('views.add_editor', business_name=business.name) }}">
+      <form method="POST" action="{{ url_for('views.add_editor', business_name=business.name) }}" id="addEditorForm">
         <div class="form-group">
           <label for="username">Username:</label>
           <input type="text" id="username" name="username" required>
@@ -128,22 +127,34 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 });
 
-document.getElementById('llm-form').addEventListener('submit', function(e) {
-  e.preventDefault();
-  const query = document.getElementById('llm-query').value;
-  fetch('/ask_llm', {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({ query })
-  })
-  .then(response => response.json())
-  .then(data => {
-    document.getElementById('llm-response').textContent = data.error ? 'Error: ' + data.error : data.response;
-  })
-  .catch(() => {
-    document.getElementById('llm-response').textContent = 'An error occurred.';
+// Only add LLM form listener if the form exists
+const llmForm = document.getElementById('llm-form');
+if (llmForm) {
+  llmForm.addEventListener('submit', function(e) {
+    e.preventDefault();
+    const query = document.getElementById('llm-query').value;
+    fetch('/ask_llm', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ query })
+    })
+    .then(response => response.json())
+    .then(data => {
+      document.getElementById('llm-response').textContent = data.error ? 'Error: ' + data.error : data.response;
+    })
+    .catch(() => {
+      document.getElementById('llm-response').textContent = 'An error occurred.';
+    });
   });
-});
+}
+
+// Initialize form validation for add editor form
+const addEditorForm = document.getElementById('addEditorForm');
+if (addEditorForm) {
+  window.validator.initFormValidation('addEditorForm', {
+    username: { type: 'username', required: true, label: 'Username' }
+  });
+}
 </script>
 
 {% endblock %}

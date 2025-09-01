@@ -84,6 +84,28 @@ body.full-height-layout .content {
     box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
 }
 
+/* Validation error styling */
+.validation-error {
+    color: #dc3545;
+    font-size: 0.875rem;
+    margin-top: 0.25rem;
+    display: none;
+}
+
+.validation-error.show {
+    display: block;
+}
+
+.is-invalid {
+    border-color: #dc3545 !important;
+    box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25) !important;
+}
+
+.is-valid {
+    border-color: #28a745 !important;
+    box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25) !important;
+}
+
 button,
 a.button {
     display: inline-block;

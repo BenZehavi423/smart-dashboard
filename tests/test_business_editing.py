@@ -65,7 +65,7 @@ def test_edit_business_details_form_submission(client, mock_db, test_user, mock_
     # Submit form with new details
     response = client.post('/edit_business_details/test-business', data={
         'address': 'New Address',
-        'phone': '123-456-7890',
+        'phone': '1234567890',
         'email': 'new@example.com'
     })
     
@@ -100,7 +100,7 @@ def test_edit_business_details_post_fails_for_non_editor(client, mock_db, test_u
     
     data = {
         'address': 'New Address',
-        'phone': '123-456-7890',
+        'phone': '123-4567890',
         'email': 'new@example.com'
     }
     
@@ -111,4 +111,109 @@ def test_edit_business_details_post_fails_for_non_editor(client, mock_db, test_u
     assert b'You do not have permission to edit this business' in response.data
     
     # Verify that the database was NOT updated
+    mock_db.update_business.assert_not_called()
+
+
+def test_edit_business_details_empty_form_submission(client, mock_db, test_user, mock_business):
+    """Test that empty form submission is handled correctly"""
+    # Set up user as editor
+    mock_business.editors = {test_user._id}
+    mock_business.address = "Old Address"
+    mock_business.phone = "Old Phone"
+    mock_business.email = "old@example.com"
+    mock_db.get_user_by_username.return_value = test_user
+    mock_db.get_business_by_name.return_value = mock_business
+    mock_db.update_business.return_value = True
+    
+    with client.session_transaction() as sess:
+        sess['username'] = 'testuser'
+    
+    # Submit form with empty fields
+    response = client.post('/edit_business_details/test-business', data={
+        'address': '',
+        'phone': '',
+        'email': ''
+    })
+    
+    assert response.status_code == 302  # Redirect
+    # Should still call update_business to clear the fields
+    mock_db.update_business.assert_called_once()
+
+def test_edit_business_details_partial_update(client, mock_db, test_user, mock_business):
+    """Test that only changed fields are updated"""
+    # Set up user as editor
+    mock_business.editors = {test_user._id}
+    # Ensure the business has the expected attributes
+    mock_business._id = "business123"  # Ensure _id is set
+    mock_business.address = "Old Address"
+    mock_business.phone = "1234567890"  # Valid phone format
+    mock_business.email = "old@example.com"
+    mock_db.get_user_by_username.return_value = test_user
+    mock_db.get_business_by_name.return_value = mock_business
+    mock_db.update_business.return_value = True
+    
+    with client.session_transaction() as sess:
+        sess['username'] = 'testuser'
+    
+    # Submit form with only address changed (using valid data)
+    response = client.post('/edit_business_details/test-business', data={
+        'address': 'New Address',
+        'phone': '1234567890',  # Same as current
+        'email': 'old@example.com'  # Same as current
+    })
+    
+    assert response.status_code == 302  # Redirect
+    # Check that it redirects to the business page (not back to the form)
+    assert '/business_page/test-business' in response.headers.get('Location', '')
+    
+    # Should call update_business with only the address change
+    mock_db.update_business.assert_called_once()
+    call_args = mock_db.update_business.call_args[0]
+    assert call_args[1] == {'address': 'New Address'}  # Only address should be updated
+
+def test_edit_business_details_no_changes_skips_update(client, mock_db, test_user, mock_business):
+    """Test that no database update occurs when no fields are changed"""
+    # Set up user as editor
+    mock_business.editors = {test_user._id}
+    mock_business.address = "Current Address"
+    mock_business.phone = "Current Phone"
+    mock_business.email = "current@example.com"
+    mock_db.get_user_by_username.return_value = test_user
+    mock_db.get_business_by_name.return_value = mock_business
+    mock_db.update_business.return_value = True
+    
+    with client.session_transaction() as sess:
+        sess['username'] = 'testuser'
+    
+    # Submit form with same values (no changes)
+    response = client.post('/edit_business_details/test-business', data={
+        'address': 'Current Address',
+        'phone': 'Current Phone',
+        'email': 'current@example.com'
+    })
+    
+    assert response.status_code == 302  # Redirect
+    # Should NOT call update_business since no changes were made
+    mock_db.update_business.assert_not_called()
+
+def test_edit_business_details_validation_errors(client, mock_db, test_user, mock_business):
+    """Test that validation errors are handled correctly"""
+    # Set up user as editor
+    mock_business.editors = {test_user._id}
+    mock_db.get_user_by_username.return_value = test_user
+    mock_db.get_business_by_name.return_value = mock_business
+    
+    with client.session_transaction() as sess:
+        sess['username'] = 'testuser'
+    
+    # Submit form with invalid email
+    response = client.post('/edit_business_details/test-business', data={
+        'address': 'Valid Address',
+        'phone': '1234567890',
+        'email': 'invalid-email'  # Invalid email format
+    })
+    
+    # Should redirect back to the form due to validation error
+    assert response.status_code == 302
+    # Should not call update_business due to validation error
     mock_db.update_business.assert_not_called()
