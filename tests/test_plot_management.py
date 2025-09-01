@@ -142,8 +142,8 @@ def test_edit_plots_save_changes_failure(client, mock_db, test_user, mock_busine
     """Test failed saving of plot changes via AJAX"""
     mock_db.get_user_by_username.return_value = test_user
     mock_db.get_business_by_name.return_value = mock_business
-    mock_db.update_multiple_plots.return_value = False
-    mock_db.update_plot_presentation_order.return_value = True
+    # Mock the save_plot_changes_for_business method to return False
+    mock_db.save_plot_changes_for_business.return_value = False
     
     with client.session_transaction() as sess:
         sess['username'] = 'testuser'
@@ -212,6 +212,7 @@ def test_analyze_data_page_requires_login(client):
 def test_analyze_data_page_accessible_when_logged_in(client, mock_db, test_user, mock_business):
     """Test that analyze data page is accessible when user is logged in"""
     mock_db.get_user_by_username.return_value = test_user
+    mock_db.get_business_by_name.return_value = mock_business
     mock_db.get_files_for_business.return_value = []
     
     with client.session_transaction() as sess:
@@ -301,6 +302,7 @@ def test_update_plot_presentation_order(mock_db):
 def test_edit_plots_invalid_json(client, mock_db, test_user, mock_business):
     """Test handling of invalid JSON in edit plots request"""
     mock_db.get_user_by_username.return_value = test_user
+    mock_db.get_business_by_name.return_value = mock_business
     
     with client.session_transaction() as sess:
         sess['username'] = 'testuser'
@@ -314,6 +316,7 @@ def test_edit_plots_invalid_json(client, mock_db, test_user, mock_business):
 def test_analyze_data_invalid_json(client, mock_db, test_user, mock_business):
     """Test analyze data with invalid JSON"""
     mock_db.get_user_by_username.return_value = test_user
+    mock_db.get_business_by_name.return_value = mock_business
     
     with client.session_transaction() as sess:
         sess['username'] = 'testuser'
@@ -327,8 +330,8 @@ def test_edit_plots_missing_data(client, mock_db, test_user, mock_business):
     """Test handling of missing data in edit plots request"""
     mock_db.get_user_by_username.return_value = test_user
     mock_db.get_business_by_name.return_value = mock_business
-    mock_db.update_multiple_plots.return_value = False
-    mock_db.update_plot_presentation_order.return_value = False
+    # Mock the save_plot_changes_for_business method to return False for missing data
+    mock_db.save_plot_changes_for_business.return_value = False
     with client.session_transaction() as sess:
         sess['username'] = 'testuser'
     data = {}  # Missing required fields
@@ -526,8 +529,8 @@ def test_edit_plots_save_changes_failure_with_logging(client, mock_db, test_user
     """Test failed saving of plot changes with proper logging"""
     mock_db.get_user_by_username.return_value = test_user
     mock_db.get_business_by_name.return_value = mock_business
-    mock_db.update_multiple_plots.return_value = False
-    mock_db.update_plot_presentation_order.return_value = True
+    # Mock the save_plot_changes_for_business method to return False
+    mock_db.save_plot_changes_for_business.return_value = False
     
     with client.session_transaction() as sess:
         sess['username'] = 'testuser'
@@ -547,8 +550,7 @@ def test_edit_plots_save_changes_failure_with_logging(client, mock_db, test_user
         # Verify logging calls
         mock_logger.info.assert_called()
         mock_logger.error.assert_called_with(
-            f"Failed to save plot changes for user testuser",
-            extra_fields={'user_id': test_user._id, 'plot_success': False, 'order_success': True}
+            f"Failed to save plot changes for user testuser"
         )
     
     assert response.status_code == 200
@@ -635,8 +637,8 @@ def test_edit_plots_error_modal_display(client, mock_db, test_user, mock_busines
     """Test that error modals are shown when operations fail"""
     mock_db.get_user_by_username.return_value = test_user
     mock_db.get_business_by_name.return_value = mock_business
-    mock_db.update_multiple_plots.return_value = False
-    mock_db.update_plot_presentation_order.return_value = False
+    # Mock the save_plot_changes_for_business method to return False
+    mock_db.save_plot_changes_for_business.return_value = False
     
     with client.session_transaction() as sess:
         sess['username'] = 'testuser'
@@ -660,8 +662,8 @@ def test_edit_plots_no_plots_selected_confirmation(client, mock_db, test_user, m
     """Test that confirmation is shown when no plots are selected"""
     mock_db.get_user_by_username.return_value = test_user
     mock_db.get_business_by_name.return_value = mock_business
-    mock_db.update_multiple_plots.return_value = True
-    mock_db.update_plot_presentation_order.return_value = True
+    # Mock the save_plot_changes_for_business method to return True
+    mock_db.save_plot_changes_for_business.return_value = True
     
     with client.session_transaction() as sess:
         sess['username'] = 'testuser'
@@ -690,8 +692,8 @@ def test_full_edit_plots_workflow_with_modals(client, mock_db, test_user, mock_p
     mock_db.get_business_by_id.return_value = mock_business
     mock_db.get_business_by_name.return_value = mock_business
     mock_db.get_user_by_id.return_value = test_user
-    mock_db.update_multiple_plots.return_value = True
-    mock_db.update_plot_presentation_order.return_value = True
+    # Mock the save_plot_changes_for_business method to return True
+    mock_db.save_plot_changes_for_business.return_value = True
     
     with client.session_transaction() as sess:
         sess['username'] = 'testuser'

@@ -6,24 +6,132 @@ Login
 {% block content %}
 <div class="start-pages auth-page">
   <h1 class="page-title">Log In</h1>
-  <form class="auth-form" method="POST" action="{{ url_for('auth.login') }}">
+  <form class="auth-form" method="POST" action="{{ url_for('auth.login') }}" id="loginForm">
       <div class="form-row">
           <label for="username">Username</label>
           <input type="text" id="username" name="username" required>
+          <div class="validation-error" id="username-error"></div>
       </div>
       <div class="form-row">
           <label for="password">Password</label>
           <input type="password" id="password" name="password" required>
+          <div class="validation-error" id="password-error"></div>
       </div>
       <button type="submit" class="button green">Log In</button>
   </form>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const form = document.getElementById('loginForm');
+      const usernameField = document.getElementById('username');
+      const passwordField = document.getElementById('password');
+      const usernameError = document.getElementById('username-error');
+      const passwordError = document.getElementById('password-error');
+      
+      // Clear errors when user starts typing
+      usernameField.addEventListener('input', function() {
+        hideError(usernameError);
+        usernameField.classList.remove('is-invalid');
+      });
+      
+      passwordField.addEventListener('input', function() {
+        hideError(passwordError);
+        passwordField.classList.remove('is-invalid');
+      });
+      
+      // Handle form submission with AJAX
+      form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        // Clear previous errors
+        hideError(usernameError);
+        hideError(passwordError);
+        usernameField.classList.remove('is-invalid');
+        passwordField.classList.remove('is-invalid');
+        
+        const formData = new FormData(form);
+        const username = formData.get('username');
+        const password = formData.get('password');
+        
+        // Basic client-side validation
+        if (!username.trim()) {
+          showError(usernameError, 'Username is required');
+          usernameField.classList.add('is-invalid');
+          return;
+        }
+        
+        if (!password.trim()) {
+          showError(passwordError, 'Password is required');
+          passwordField.classList.add('is-invalid');
+          return;
+        }
+        
+        // Submit via AJAX
+        fetch(form.action, {
+          method: 'POST',
+          body: formData,
+          headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+          }
+        })
+        .then(response => {
+          if (response.redirected) {
+            // Success - redirect to the target page
+            window.location.href = response.url;
+          } else {
+            // Error - try to parse as JSON first
+            return response.json().catch(() => {
+              // If not JSON, try as text
+              return response.text().then(text => {
+                // Try to parse as HTML and extract flash messages
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(text, 'text/html');
+                const flashMessages = doc.querySelectorAll('li');
+                
+                if (flashMessages.length > 0) {
+                  const errorMessage = Array.from(flashMessages)
+                    .map(msg => msg.textContent)
+                    .join(' ');
+                  return { error: errorMessage };
+                }
+                return { error: 'An error occurred. Please try again.' };
+              });
+            });
+          }
+        })
+        .then(data => {
+          if (data && data.error) {
+            // Show error under appropriate field based on error type
+            if (data.error.includes('Username not found')) {
+              showError(usernameError, data.error);
+              usernameField.classList.add('is-invalid');
+            } else if (data.error.includes('Incorrect password')) {
+              showError(passwordError, data.error);
+              passwordField.classList.add('is-invalid');
+            } else {
+              // For other errors, show under username field
+              showError(usernameError, data.error);
+              usernameField.classList.add('is-invalid');
+            }
+          }
+        })
+        .catch(error => {
+          console.error('Error:', error);
+          window.validator.showErrorNotification('An error occurred. Please try again.');
+        });
+      });
+      
+      function showError(errorElement, message) {
+        errorElement.textContent = message;
+        errorElement.classList.add('show');
+      }
+      
+      function hideError(errorElement) {
+        errorElement.classList.remove('show');
+      }
+    });
+  </script>
+
   <p class="auth-switch">Don't have an account yet? <a class="button blue" href="{{ url_for('auth.register') }}">Sign Up</a></p>
-{% if get_flashed_messages() %}
-    <ul style="color: red;">
-        {% for message in get_flashed_messages() %}
-            <li>{{ message }}</li>
-        {% endfor %}
-    </ul>
-{% endif %}
 </div>
 {% endblock %}

@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash, current_app, session
+from flask import Blueprint, render_template, request, redirect, url_for, flash, current_app, session, jsonify
 from .models import User
 from .db_manager import MongoDBManager
 from .validation import Validator
@@ -39,16 +39,22 @@ def register():
         password_valid, password_error = Validator.validate_password(password)
         
         if not username_valid:
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return jsonify({'error': username_error}), 400
             flash(username_error, 'error')
             return redirect(url_for('auth.register'))
         
         if not password_valid:
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return jsonify({'error': password_error}), 400
             flash(password_error, 'error')
             return redirect(url_for('auth.register'))
         
         #check if user already exists
         existing_user = current_app.db.get_user_by_username(username)
         if existing_user:
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return jsonify({'error': 'Username already exists!'}), 400
             flash('Username already exists!', 'error')
             return redirect(url_for('auth.register'))
         
@@ -89,9 +95,17 @@ def login():
             flash('Logged in successfully!', 'success')
             return redirect(url_for('views.profile'))
         else:
-            # Invalid credentials
-            flash('Invalid username or password.', 'error')
-            return redirect(url_for('auth.login'))
+            # Provide more specific error messages
+            if not user:
+                error_message = 'Username not found. Please check your username or create a new account.'
+            else:
+                error_message = 'Incorrect password. Please try again.'
+            
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return jsonify({'error': error_message}), 400
+            else:
+                flash(error_message, 'error')
+                return redirect(url_for('auth.login'))
     return render_template('login.html'), 200
 
 

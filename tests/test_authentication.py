@@ -21,7 +21,7 @@ def test_login_with_invalid_credentials(client, mock_db):
     mock_db.get_user_by_username.return_value = None
     response = client.post('/login', data={'username': 'wronguser', 'password': 'wrongpass'}, follow_redirects=True)
     assert response.status_code == 200
-    assert b'Invalid username or password' in response.data
+    assert b'Username not found' in response.data
 
 # Test that logging out removes session and access to protected pages
 def test_logout_invalidates_session(client, registered_user):
@@ -69,21 +69,21 @@ def test_login_redirects_if_already_logged_in(client, registered_user):
 def test_register_then_login_flow(client, mock_db):
     # First register
     mock_db.get_user_by_username.return_value = None
+    mock_db.create_user.return_value = "user_id"
     response = client.post('/register', data={
         'username': 'newuser',
-        'email': 'new@example.com',
-        'password': 'newpass'
+        'password': 'newpass123'  # Valid password with number
     }, follow_redirects=True)
     assert b'Registration successful' in response.data
 
     # Then login
-    hashed_pw = bcrypt.hashpw('newpass'.encode(), bcrypt.gensalt()).decode()
+    hashed_pw = bcrypt.hashpw('newpass123'.encode(), bcrypt.gensalt()).decode()
     mock_db.get_user_by_username.return_value = User(
-        username='newuser', email='new@example.com', password_hash=hashed_pw
+        username='newuser', password_hash=hashed_pw
     )
     response = client.post('/login', data={
         'username': 'newuser',
-        'password': 'newpass'
+        'password': 'newpass123'
     }, follow_redirects=True)
     assert b'Logged in successfully' in response.data
     assert b'newuser' in response.data.lower()

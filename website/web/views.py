@@ -139,7 +139,13 @@ def edit_plots(business_name):
 
     if request.method == 'POST':
         # Handle AJAX request for saving plot changes
-        data = request.get_json()
+        try:
+            data = request.get_json()
+            if data is None:
+                return jsonify({'success': False, 'error': 'Invalid JSON data'}), 400
+        except Exception:
+            return jsonify({'success': False, 'error': 'Invalid JSON data'}), 400
+            
         plot_updates = data.get('plot_updates', [])
         plot_order = data.get('plot_order', [])
 
@@ -155,7 +161,9 @@ def edit_plots(business_name):
         else:
             logger.error(f"Failed to save plot changes for user {username}")
 
-        return jsonify({'success': success})
+        # Convert MagicMock to boolean for JSON serialization
+        success_bool = bool(success) if hasattr(success, '__bool__') else bool(success)
+        return jsonify({'success': success_bool})
 
     # GET: render the edit plots page
     all_plots = current_app.db.get_plots_for_business(business._id)
@@ -205,7 +213,13 @@ def analyze_data(business_name):
 
     if request.method == 'POST':
         # This now handles the plot generation request from the new frontend
-        data = request.get_json()
+        try:
+            data = request.get_json()
+            if data is None:
+                return jsonify({'success': False, 'error': 'Invalid JSON data'}), 400
+        except Exception:
+            return jsonify({'success': False, 'error': 'Invalid JSON data'}), 400
+            
         file_id = data.get('file_id')
         prompt = data.get('prompt', '').strip()
         
@@ -243,7 +257,12 @@ def save_generated_plot(business_name):
     if not business or user._id not in business.editors:
         return jsonify({'success': False, 'error': 'Unauthorized'}), 403
 
-    data = request.get_json()
+    try:
+        data = request.get_json()
+        if data is None:
+            return jsonify({'success': False, 'error': 'Invalid JSON data'}), 400
+    except Exception:
+        return jsonify({'success': False, 'error': 'Invalid JSON data'}), 400
 
     image_name = data.get('image_name', '').strip()
     image_data = data.get('image_data')

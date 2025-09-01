@@ -101,7 +101,10 @@ def test_get_files_for_business(mock_mongo_collections):
 def test_update_business(mock_mongo_collections):
     """Test that update_business updates business fields correctly"""
     # Mock successful update
-    mock_mongo_collections.businesses.update_one.return_value = Mock(modified_count=1)
+    mock_result = Mock()
+    mock_result.modified_count = 1
+    mock_result.acknowledged = True
+    mock_mongo_collections.businesses.update_one.return_value = mock_result
     
     updates = {"address": "New Address", "phone": "123-456-7890"}
     result = mock_mongo_collections.update_business("business123", updates)

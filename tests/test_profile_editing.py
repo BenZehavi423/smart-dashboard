@@ -31,7 +31,7 @@ def test_edit_profile_form_submission(client, mock_db, test_user):
     # Submit form with new details
     response = client.post('/edit_profile_details', data={
         'email': 'newemail@example.com',
-        'phone': '987-654-3210'
+        'phone': '9876543210'
     })
     
     assert response.status_code == 302  # Redirect
