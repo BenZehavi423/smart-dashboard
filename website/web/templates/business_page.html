@@ -30,13 +30,35 @@ Dashboard
 {% if user._id == business.owner %}
 <div class="dashboard-section">
   <h2>Manage Editors</h2>
+  
+  <!-- Flash messages for editor management -->
+  {% if all_messages %}
+    {% set editor_messages = [] %}
+    {% set other_messages = [] %}
+    {% for category, message in all_messages %}
+      {% if 'editor' in message.lower() or 'username' in message.lower() %}
+        {% set _ = editor_messages.append((category, message)) %}
+      {% else %}
+        {% set _ = other_messages.append((category, message)) %}
+      {% endif %}
+    {% endfor %}
+    
+    {% if editor_messages %}
+      <div class="flash-container">
+        {% for category, message in editor_messages %}
+          <div class="flash-message {{ category }}">{{ message }}</div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endif %}
+  
   <div class="editor-management">
     <div class="add-editor-form">
       <h3>Add Editor</h3>
       <form method="POST" action="{{ url_for('views.add_editor', business_name=business.name) }}" id="addEditorForm">
         <div class="form-group">
           <label for="username">Username:</label>
-          <input type="text" id="username" name="username" required>
+          <input type="text" id="username" name="username" value="{{ form_username }}" required>
           <small>Enter the username of the person you want to give editing privileges to</small>
         </div>
         <button type="submit" class="btn btn-primary">Add Editor</button>
